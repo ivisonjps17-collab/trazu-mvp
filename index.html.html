@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#14203B">
+<title>Trazu</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14203B;--ink-soft:#5C6470;--ink-tint:#E7EAF1;--volt:#C6FF4F;--volt-deep:#8FCC1E;--paper:#F5F6F2;--white:#FFFFFF;--line:#DADFE0;--danger:#B3432B;--danger-tint:#FDECEA;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden;}
+.display{font-family:'Space Grotesk',sans-serif;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;background:var(--paper);overflow:hidden;}
+.screen.active{display:flex;}
+#screen-loading{align-items:center;justify-content:center;background:var(--ink);}
+.loader-logo{font-family:'Space Grotesk',sans-serif;font-size:36px;font-weight:700;color:var(--white);}
+.loader-logo span{color:var(--volt);}
+.loader-dot{width:8px;height:8px;border-radius:50%;background:var(--volt);margin-top:20px;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:12px;padding:max(16px,env(safe-area-inset-top)) 20px 12px;background:var(--white);border-bottom:1px solid var(--line);flex-shrink:0;}
+.topbar .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:var(--ink);}
+.topbar .logo span{color:var(--volt-deep);}
+.back-btn{width:34px;height:34px;border-radius:50%;background:var(--ink-tint);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.topbar .title{font-size:15px;font-weight:600;flex:1;}
+.topbar .action-btn{margin-left:auto;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-soft);}
+/* SCROLL */
+.scroll-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:max(80px,calc(80px + env(safe-area-inset-bottom)));}
+/* BOTTOM NAV */
+.bottom-nav{display:flex;background:var(--white);border-top:1px solid var(--line);flex-shrink:0;padding-bottom:max(10px,env(safe-area-inset-bottom));}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;background:none;border:none;cursor:pointer;}
+.nav-btn svg{width:20px;height:20px;}
+.nav-btn span{font-size:10px;font-weight:600;}
+.nav-btn.active svg path,.nav-btn.active svg circle,.nav-btn.active svg rect,.nav-btn.active svg line,.nav-btn.active svg polyline,.nav-btn.active svg polygon{stroke:var(--ink);}
+.nav-btn.active span{color:var(--ink);}
+.nav-btn:not(.active) svg path,.nav-btn:not(.active) svg circle,.nav-btn:not(.active) svg rect,.nav-btn:not(.active) svg line,.nav-btn:not(.active) svg polyline,.nav-btn:not(.active) svg polygon{stroke:var(--ink-soft);}
+.nav-btn:not(.active) span{color:var(--ink-soft);}
+/* FORMS */
+.field-group{padding:20px;}
+.field-label{font-size:12px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.field{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;color:var(--ink);background:var(--white);outline:none;transition:border-color .15s;}
+.field:focus{border-color:var(--ink);}
+.field::placeholder{color:var(--ink-soft);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-gap{margin-top:12px;}
+.btn{width:100%;padding:14px;border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;border:none;cursor:pointer;transition:opacity .15s;}
+.btn:active{opacity:.8;}
+.btn-primary{background:var(--volt);color:var(--ink);}
+.btn-dark{background:var(--ink);color:var(--white);}
+.btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink);}
+.btn-danger{background:var(--danger-tint);color:var(--danger);}
+.btn-sm{padding:9px 16px;font-size:13px;border-radius:8px;width:auto;}
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 16px 12px;}
+.card-title{font-size:14px;font-weight:700;margin-bottom:4px;}
+.card-sub{font-size:12px;color:var(--ink-soft);}
+.card-row{display:flex;align-items:center;justify-content:space-between;}
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;}
+.badge-pending{background:#FFF3CD;color:#856404;}
+.badge-accepted{background:#D4EDDA;color:#155724;}
+.badge-transit{background:var(--ink-tint);color:var(--ink);}
+.badge-delivered,.badge-matched{background:#D4EDDA;color:#155724;}
+.badge-rejected{background:var(--danger-tint);color:var(--danger);}
+.badge-open{background:var(--ink-tint);color:var(--ink);}
+/* ROUTE */
+.route-line{display:flex;align-items:center;gap:8px;margin:10px 0;}
+.route-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.route-dot.origin{background:var(--ink);}
+.route-dot.dest{background:var(--volt-deep);}
+.route-track{flex:1;border-top:2px dashed var(--line);}
+.route-city{font-size:13px;font-weight:600;}
+/* AUTH */
+#screen-auth{justify-content:flex-start;overflow-y:auto;}
+.auth-header{background:var(--ink);padding:44px 24px 28px;}
+.auth-logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;color:var(--white);}
+.auth-logo span{color:var(--volt);}
+.auth-tagline{font-size:14px;color:#AEB6C4;margin-top:6px;}
+.auth-tabs{display:flex;border-bottom:1px solid var(--line);background:var(--white);}
+.auth-tab{flex:1;padding:14px;font-size:14px;font-weight:600;text-align:center;background:none;border:none;cursor:pointer;color:var(--ink-soft);border-bottom:2px solid transparent;}
+.auth-tab.active{color:var(--ink);border-bottom-color:var(--ink);}
+.auth-body{padding:20px;}
+/* PASSWORD */
+.pw-wrap{position:relative;}
+.pw-wrap .field{padding-right:44px;}
+.pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:4px;}
+/* CITY AUTOCOMPLETE */
+.city-wrap{position:relative;}
+.city-suggestions{position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--white);border:1.5px solid var(--ink);border-radius:10px;z-index:200;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 12px rgba(0,0,0,.1);}
+.city-suggestions.show{display:block;}
+.city-suggestion{padding:12px 14px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+.city-suggestion:last-child{border-bottom:none;}
+.city-suggestion:active{background:var(--ink-tint);}
+.city-uf{font-size:11px;font-weight:700;background:var(--ink-tint);color:var(--ink);padding:2px 7px;border-radius:4px;}
+/* MAP PREVIEW */
+.map-preview{border-radius:10px;overflow:hidden;margin-top:8px;border:1px solid var(--line);height:160px;display:none;}
+.map-preview.show{display:block;}
+.map-preview iframe{width:100%;height:100%;border:none;}
+.map-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--white);background:var(--ink);border:none;border-radius:6px;padding:6px 12px;cursor:pointer;margin-top:6px;}
+/* APP FAQ */
+.app-faq-item{border-bottom:1px solid var(--line);}
+.app-faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:none;border:none;cursor:pointer;text-align:left;padding:16px 0;font-size:14px;font-weight:600;color:var(--ink);font-family:inherit;}
+.app-faq-icon{font-size:22px;font-weight:300;color:var(--ink);flex-shrink:0;transition:transform .25s ease;line-height:1;}
+.app-faq-item.open .app-faq-icon{transform:rotate(45deg);}
+.app-faq-a{font-size:13px;color:var(--ink-soft);line-height:1.7;max-height:0;overflow:hidden;transition:max-height .35s ease,padding-bottom .35s ease;padding-bottom:0;}
+.app-faq-item.open .app-faq-a{max-height:400px;padding-bottom:16px;}
+/* PAYMENT */
+.payment-method-btn{width:100%;display:flex;align-items:center;gap:14px;background:var(--white);border:1.5px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;text-align:left;margin-bottom:10px;transition:border-color .15s;}
+.payment-method-btn.selected{border-color:var(--ink);background:var(--ink-tint);}
+.pay-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);margin-left:auto;flex-shrink:0;transition:all .15s;}
+.payment-method-btn.selected .pay-check{background:var(--ink);border-color:var(--ink);}
+.payment-method-btn.selected .pay-check::after{content:'✓';color:var(--white);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;height:100%;}
+.terms-row{display:flex;align-items:flex-start;gap:10px;margin-top:14px;padding:12px;background:var(--ink-tint);border-radius:10px;}
+.terms-check{width:20px;height:20px;flex-shrink:0;accent-color:var(--ink);margin-top:1px;cursor:pointer;}
+.terms-text{font-size:12px;color:var(--ink-soft);line-height:1.5;}
+.terms-text a{color:var(--ink);font-weight:600;text-decoration:underline;cursor:pointer;}
+/* PROHIBITED WARNING */
+.prohibited-box{margin:0 16px 16px;background:var(--danger-tint);border:1px solid #F5C6C0;border-radius:12px;padding:14px;}
+.prohibited-box h4{font-size:13px;font-weight:700;color:var(--danger);margin-bottom:8px;}
+.prohibited-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--danger);margin-bottom:5px;}
+/* INSURANCE BOX */
+.insurance-box{margin:0 16px 16px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:12px;padding:14px;}
+.insurance-box h4{font-size:13px;font-weight:700;color:#1B5E20;margin-bottom:6px;}
+.insurance-box p{font-size:12px;color:#2E7D32;line-height:1.5;}
+.ins-toggle-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+.ins-toggle{width:44px;height:24px;border-radius:12px;background:var(--line);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.ins-toggle.on{background:var(--volt-deep);}
+.ins-toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--white);transition:left .2s;}
+.ins-toggle.on::after{left:22px;}
+/* TERMS SCREEN */
+#screen-terms{background:var(--white);}
+.terms-body{padding:20px;font-size:13px;line-height:1.7;color:var(--ink);}
+.terms-body h2{font-size:15px;font-weight:700;margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+.terms-body h3{font-size:13px;font-weight:700;margin:14px 0 5px;}
+.terms-body p{margin-bottom:10px;color:var(--ink-soft);}
+.terms-body ul{padding-left:18px;margin-bottom:10px;}
+.terms-body li{color:var(--ink-soft);margin-bottom:4px;}
+.terms-highlight{background:var(--ink);color:var(--white);padding:12px 14px;border-radius:10px;margin:14px 0;font-size:13px;line-height:1.6;}
+/* HOME */
+.home-welcome{padding:20px 16px 4px;}
+.home-welcome h2{font-size:20px;font-weight:700;}
+.home-welcome p{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+.home-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px;}
+.action-card{border-radius:14px;padding:16px 14px;cursor:pointer;border:none;text-align:left;}
+.action-card.c1{background:var(--volt);color:var(--ink);}
+.action-card.c2{background:var(--ink);color:var(--white);}
+.action-card.c3{background:var(--ink-tint);color:var(--ink);}
+.action-card.c4{background:#E8F5E9;color:#1B5E20;}
+.action-card .ac-icon{font-size:22px;margin-bottom:8px;display:block;}
+.action-card .ac-title{font-size:13px;font-weight:700;display:block;}
+.action-card .ac-sub{font-size:11px;opacity:.7;display:block;margin-top:2px;}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);padding:4px 16px 10px;}
+.empty{text-align:center;padding:36px 24px;color:var(--ink-soft);}
+.empty-icon{font-size:32px;margin-bottom:10px;}
+.empty p{font-size:14px;}
+/* CHAT */
+#screen-chat{background:var(--paper);}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.msg{max-width:78%;}
+.msg.mine{align-self:flex-end;}
+.msg.theirs{align-self:flex-start;}
+.msg-bubble{padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.45;}
+.msg.mine .msg-bubble{background:var(--ink);color:var(--white);border-bottom-right-radius:4px;}
+.msg.theirs .msg-bubble{background:var(--white);color:var(--ink);border:1px solid var(--line);border-bottom-left-radius:4px;}
+.msg-time{font-size:10px;color:var(--ink-soft);margin-top:3px;text-align:right;}
+.msg.theirs .msg-time{text-align:left;}
+.chat-input-bar{display:flex;gap:8px;padding:10px 16px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:var(--white);border-top:1px solid var(--line);flex-shrink:0;}
+.chat-input{flex:1;border:1.5px solid var(--line);border-radius:24px;padding:10px 16px;font-size:14px;font-family:inherit;outline:none;background:var(--paper);}
+.chat-send{width:40px;height:40px;border-radius:50%;background:var(--ink);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-badge{background:var(--ink);padding:10px 16px;border-radius:10px;text-align:center;margin:8px 16px;}
+.chat-badge .code{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;color:var(--volt);letter-spacing:.12em;display:block;}
+.chat-badge p{font-size:11px;color:#AEB6C4;margin-top:4px;}
+/* TOAST */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--white);padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;}
+/* PROFILE */
+.profile-header{background:var(--ink);padding:max(32px,env(safe-area-inset-top)) 20px 24px;display:flex;align-items:center;gap:14px;}
+.avatar-wrap{position:relative;cursor:pointer;flex-shrink:0;}
+.avatar-circle{width:60px;height:60px;border-radius:50%;object-fit:cover;display:block;}
+.avatar-init{width:60px;height:60px;border-radius:50%;background:var(--volt);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--ink);font-family:'Space Grotesk',sans-serif;}
+.avatar-edit-badge{position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--volt);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--ink);}
+.profile-name{font-size:17px;font-weight:700;color:var(--white);}
+.profile-city-tag{font-size:12px;color:#AEB6C4;margin-top:2px;}
+.profile-email{font-size:12px;color:#AEB6C4;}
+.menu-item{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--white);cursor:pointer;font-size:14px;font-weight:500;}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:none;align-items:flex-end;}
+.modal-overlay.show{display:flex;}
+.modal-sheet{background:var(--white);border-radius:20px 20px 0 0;padding:24px 20px max(24px,env(safe-area-inset-bottom));width:100%;}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:16px;text-align:center;}
+/* TABS */
+.tab-bar{display:flex;border-bottom:1px solid var(--line);background:var(--white);flex-shrink:0;}
+.tab-btn{flex:1;padding:12px;font-size:13px;font-weight:600;text-align:center;background:none;border:none;cursor:pointer;color:var(--ink-soft);border-bottom:2px solid transparent;}
+.tab-btn.active{color:var(--ink);border-bottom-color:var(--ink);}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="screen active" id="screen-loading">
+  <div class="loader-logo display">trazu<span>.</span></div>
+  <div class="loader-dot"></div>
+</div>
+
+<!-- AUTH -->
+<div class="screen" id="screen-auth">
+  <div class="auth-header">
+    <div class="auth-logo display">trazu<span>.</span></div>
+    <p class="auth-tagline">Sua encomenda viaja com quem já vai pra lá.</p>
+  </div>
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="switchTab('login')">Entrar</button>
+    <button class="auth-tab" onclick="switchTab('register')">Criar conta</button>
+  </div>
+  <div class="auth-body">
+    <div id="tab-login">
+      <div class="form-gap"></div>
+      <div class="field-label">E-mail</div>
+      <input class="field" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+      <div class="form-gap"></div>
+      <div class="field-label">Senha</div>
+      <div class="pw-wrap">
+        <input class="field" type="password" id="login-password" placeholder="Sua senha" autocomplete="current-password">
+        <button class="pw-eye" type="button" onclick="togglePw('login-password',this)">👁</button>
+      </div>
+      <div class="form-gap"></div><div class="form-gap"></div>
+      <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+      <p style="text-align:center;font-size:13px;color:var(--ink-soft);margin-top:16px">Não tem conta? <a href="#" onclick="switchTab('register')" style="color:var(--ink);font-weight:600">Criar agora</a></p>
+    </div>
+    <div id="tab-register" style="display:none">
+      <div class="form-gap"></div>
+      <div class="field-label">Seu nome completo</div>
+      <input class="field" type="text" id="reg-name" placeholder="Nome e sobrenome" autocomplete="name">
+      <div class="form-gap"></div>
+      <div class="field-row">
+        <div>
+          <div class="field-label">WhatsApp</div>
+          <input class="field" type="tel" id="reg-whatsapp" placeholder="(27) 99999-9999">
+        </div>
+        <div>
+          <div class="field-label">Cidade/UF</div>
+          <div class="city-wrap">
+            <input class="field" type="text" id="reg-city" placeholder="Ex: Vitória" autocomplete="off" oninput="cityAC(this,'reg-city-sug')">
+            <div class="city-suggestions" id="reg-city-sug"></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-gap"></div>
+      <div class="field-label">E-mail</div>
+      <input class="field" type="email" id="reg-email" placeholder="seu@email.com" autocomplete="email">
+      <div class="form-gap"></div>
+      <div class="field-label">Senha</div>
+      <div class="pw-wrap">
+        <input class="field" type="password" id="reg-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+        <button class="pw-eye" type="button" onclick="togglePw('reg-password',this)">👁</button>
+      </div>
+      <div class="form-gap"></div><div class="form-gap"></div>
+      <div class="terms-row">
+        <input type="checkbox" class="terms-check" id="reg-terms">
+        <label class="terms-text" for="reg-terms">Li e concordo com os <a onclick="openTerms('register')">Termos de Uso</a>, incluindo as regras sobre itens proibidos, responsabilidade por extravio, roubo e furto, e o caráter ocasional do transporte.</label>
+      </div>
+      <div class="form-gap"></div>
+      <button class="btn btn-primary" onclick="doRegister()">Criar conta gratuita</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="screen-home">
+  <div class="topbar">
+    <div class="logo display">trazu<span>.</span></div>
+    <button class="action-btn" onclick="showScreen('screen-profile')">Perfil</button>
+  </div>
+  <div class="scroll-content">
+    <div class="home-welcome">
+      <h2>Olá, <span id="home-name">—</span> 👋</h2>
+      <p>O que você quer fazer hoje?</p>
+    </div>
+    <div class="home-actions">
+      <button class="action-card c1" onclick="showScreen('screen-post-pkg')">
+        <span class="ac-icon">📦</span>
+        <span class="ac-title">Publicar encomenda</span>
+        <span class="ac-sub">Sem precisar de viagem</span>
+      </button>
+      <button class="action-card c2" onclick="showScreen('screen-post-trip')">
+        <span class="ac-icon">🚗</span>
+        <span class="ac-title">Publicar viagem</span>
+        <span class="ac-sub">Ganhar renda extra</span>
+      </button>
+      <button class="action-card c3" onclick="showScreen('screen-browse-trips')">
+        <span class="ac-icon">🔍</span>
+        <span class="ac-title">Buscar viagens</span>
+        <span class="ac-sub">Ver transportadores</span>
+      </button>
+      <button class="action-card c4" onclick="showScreen('screen-browse-pkgs')">
+        <span class="ac-icon">📋</span>
+        <span class="ac-title">Ver encomendas</span>
+        <span class="ac-sub">Ofertas de envio</span>
+      </button>
+    </div>
+    <div class="section-label">MINHAS ENCOMENDAS</div>
+    <div id="home-pkgs-list"></div>
+    <div class="section-label" style="margin-top:4px">MINHAS VIAGENS</div>
+    <div id="home-trips-list"></div>
+  </div>
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="showScreen('screen-home')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Início</span></button>
+    <button class="nav-btn" onclick="showScreen('screen-browse-trips')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Buscar</span></button>
+    <button class="nav-btn" onclick="showScreen('screen-my-items')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Meus itens</span></button>
+    <button class="nav-btn" onclick="showScreen('screen-profile')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Perfil</span></button>
+  </div>
+</div>
+
+<!-- PUBLICAR ENCOMENDA (sem viagem) -->
+<div class="screen" id="screen-post-pkg">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Publicar encomenda</span>
+  </div>
+  <div class="scroll-content">
+    <div style="padding:14px 16px 0;background:var(--ink-tint);margin:16px;border-radius:12px;">
+      <p style="font-size:13px;color:var(--ink);line-height:1.5;padding-bottom:14px">📢 Publique o que você quer enviar. Transportadores que fizerem esse trajeto entrarão em contato com você.</p>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Origem</div>
+      <div class="city-wrap">
+        <input class="field" type="text" id="pkg-origin" placeholder="Cidade de origem" autocomplete="off" oninput="cityAC(this,'pkg-origin-sug')" onchange="showMapPreview('pkg-origin','pkg-origin-map')">
+        <div class="city-suggestions" id="pkg-origin-sug"></div>
+      </div>
+      <div class="form-gap"></div>
+      <div class="field-label">Destino</div>
+      <div class="city-wrap">
+        <input class="field" type="text" id="pkg-dest" placeholder="Cidade de destino" autocomplete="off" oninput="cityAC(this,'pkg-dest-sug')" onchange="showMapPreview('pkg-dest','pkg-dest-map')">
+        <div class="city-suggestions" id="pkg-dest-sug"></div>
+      </div>
+      <div class="map-preview" id="pkg-dest-map"></div>
+      <div class="form-gap"></div>
+      <div class="field-label">O que você vai enviar?</div>
+      <input class="field" type="text" id="pkg-item" placeholder="Ex: caixa com roupas, notebook...">
+      <div class="form-gap"></div>
+      <div class="field-label">Peso estimado</div>
+      <select class="field" id="pkg-weight">
+        <option value="até 2kg">até 2kg</option>
+        <option value="até 5kg">até 5kg</option>
+        <option value="até 10kg">até 10kg</option>
+        <option value="até 15kg">até 15kg</option>
+      </select>
+      <div class="form-gap"></div>
+      <div class="field-label">Valor declarado (R$)</div>
+      <input class="field" type="number" id="pkg-value" placeholder="Ex: 300">
+      <div class="form-gap"></div>
+      <div class="field-label">Endereço de coleta</div>
+      <div class="cep-wrap">
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input class="field" type="text" id="pkg-pickup-cep" placeholder="CEP (somente números)" maxlength="9" style="width:140px;flex-shrink:0" oninput="maskCep(this)" onblur="buscarCep(this.value,'pkg-pickup')">
+          <input class="field" type="text" id="pkg-pickup" placeholder="Rua, número, bairro — preenchido pelo CEP" style="flex:1">
+        </div>
+        <div id="pkg-pickup-status" style="font-size:11px;color:var(--ink-soft);margin-bottom:4px;min-height:16px"></div>
+      </div>
+      <div class="form-gap"></div>
+      <div class="field-label">Endereço de entrega</div>
+      <div class="cep-wrap">
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input class="field" type="text" id="pkg-delivery-cep" placeholder="CEP (somente números)" maxlength="9" style="width:140px;flex-shrink:0" oninput="maskCep(this)" onblur="buscarCep(this.value,'pkg-delivery')">
+          <input class="field" type="text" id="pkg-delivery" placeholder="Rua, número, bairro — preenchido pelo CEP" style="flex:1">
+        </div>
+        <div id="pkg-delivery-status" style="font-size:11px;color:var(--ink-soft);margin-bottom:4px;min-height:16px"></div>
+      </div>
+      <div class="form-gap"></div>
+      <div class="field-label">Preço que você pagaria (R$)</div>
+      <input class="field" type="number" id="pkg-price" placeholder="Ex: 40">
+      <div class="form-gap"></div>
+      <div class="terms-row">
+        <input type="checkbox" class="terms-check" id="pkg-terms">
+        <label class="terms-text" for="pkg-terms">Declaro que o item <strong>não é proibido</strong> pela plataforma (sem armas, drogas, animais, dinheiro ou itens ilegais). Estou ciente que sou responsável pelas informações declaradas. <a onclick="openTerms('pkg')">Ver regras completas</a>.</label>
+      </div>
+      <div class="form-gap"></div><div class="form-gap"></div>
+      <button class="btn btn-primary" onclick="submitPkg()">Publicar encomenda</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUSCAR VIAGENS -->
+<div class="screen" id="screen-browse-trips">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Buscar viagens</span>
+  </div>
+  <div style="padding:12px 16px;border-bottom:1px solid var(--line);background:var(--white);">
+    <div class="field-row">
+      <div class="city-wrap">
+        <input class="field" type="text" id="ft-origin" placeholder="Origem" autocomplete="off" oninput="cityAC(this,'ft-origin-sug');filterTrips()">
+        <div class="city-suggestions" id="ft-origin-sug"></div>
+      </div>
+      <div class="city-wrap">
+        <input class="field" type="text" id="ft-dest" placeholder="Destino" autocomplete="off" oninput="cityAC(this,'ft-dest-sug');filterTrips()">
+        <div class="city-suggestions" id="ft-dest-sug"></div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-content" id="browse-trips-list" style="padding-top:12px"></div>
+</div>
+
+<!-- BUSCAR ENCOMENDAS (para transportadores) -->
+<div class="screen" id="screen-browse-pkgs">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Encomendas disponíveis</span>
+  </div>
+  <div class="scroll-content" id="browse-pkgs-list" style="padding-top:12px"></div>
+</div>
+
+<!-- REQUEST FORM (remetente escolhe viagem) -->
+<div class="screen" id="screen-request">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-browse-trips')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Solicitar envio</span>
+  </div>
+  <div class="scroll-content">
+    <div id="request-trip-summary" style="padding:16px"></div>
+
+    <!-- AVISO ITENS PROIBIDOS -->
+    <div class="prohibited-box">
+      <h4>🚫 Itens proibidos — não será aceito</h4>
+      <div class="prohibited-item">🔫 Armas de fogo, munições ou explosivos</div>
+      <div class="prohibited-item">🔪 Facas ou armas brancas desembaladas</div>
+      <div class="prohibited-item">💊 Drogas ou substâncias ilícitas</div>
+      <div class="prohibited-item">🐾 Animais vivos de qualquer espécie</div>
+      <div class="prohibited-item">💵 Dinheiro em espécie ou joias não declaradas</div>
+      <div class="prohibited-item">☢️ Materiais inflamáveis ou perigosos</div>
+    </div>
+
+    <!-- SEGURO: será adicionado quando parceria com seguradora for formalizada -->
+
+    <div class="field-group">
+      <div class="field-label">O que você vai enviar?</div>
+      <input class="field" type="text" id="req-item" placeholder="Ex: caixa de documentos...">
+      <div class="form-gap"></div>
+      <div class="field-label">Peso estimado</div>
+      <select class="field" id="req-weight"><option value="até 2kg">até 2kg</option><option value="até 5kg">até 5kg</option><option value="até 10kg">até 10kg</option><option value="até 15kg">até 15kg</option></select>
+      <div class="form-gap"></div>
+      <div class="field-label">Valor declarado (R$)</div>
+      <input class="field" type="number" id="req-value" placeholder="Ex: 200">
+      <div class="form-gap"></div>
+      <div class="field-label">Endereço de coleta</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input class="field" type="text" id="req-pickup-cep" placeholder="CEP" maxlength="9" style="width:130px;flex-shrink:0" oninput="maskCep(this)" onblur="buscarCep(this.value,'req-pickup')">
+        <input class="field" type="text" id="req-pickup" placeholder="Rua, número, bairro" style="flex:1">
+      </div>
+      <div id="req-pickup-status" style="font-size:11px;color:var(--ink-soft);margin-bottom:8px;min-height:16px"></div>
+      <div class="form-gap"></div>
+      <div class="field-label">Endereço de entrega</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input class="field" type="text" id="req-delivery-cep" placeholder="CEP" maxlength="9" style="width:130px;flex-shrink:0" oninput="maskCep(this)" onblur="buscarCep(this.value,'req-delivery')">
+        <input class="field" type="text" id="req-delivery" placeholder="Rua, número, bairro" style="flex:1">
+      </div>
+      <div id="req-delivery-status" style="font-size:11px;color:var(--ink-soft);margin-bottom:8px;min-height:16px"></div>
+      <div class="form-gap"></div><div class="form-gap"></div>
+      <button class="btn btn-primary" onclick="submitRequest()">Continuar para pagamento →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TELA DE PAGAMENTO -->
+<div class="screen" id="screen-payment">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-request')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Pagamento</span>
+  </div>
+  <div class="scroll-content">
+    <!-- RESUMO DO PEDIDO -->
+    <div id="payment-summary" style="padding:16px"></div>
+
+    <!-- COMO SEU DINHEIRO É PROTEGIDO -->
+    <div style="margin:0 16px 16px;background:var(--ink);border-radius:12px;padding:16px;">
+      <p style="font-size:13px;font-weight:700;color:var(--volt);margin-bottom:8px;">🔒 Seu dinheiro fica protegido</p>
+      <p style="font-size:12px;color:#AEB6C4;line-height:1.6;">O valor é retido pela plataforma e só liberado ao transportador <strong style="color:var(--white)">depois que você confirmar a entrega</strong> com o código de 4 dígitos. Se algo der errado, o valor é estornado.</p>
+    </div>
+
+    <!-- MÉTODOS DE PAGAMENTO -->
+    <div style="margin:0 16px 16px;">
+      <p style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px;">ESCOLHA COMO PAGAR</p>
+
+      <button class="payment-method-btn" id="pay-pix" onclick="selectPayMethod('pix')">
+        <span style="font-size:20px;">💸</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;">Pix</div>
+          <div style="font-size:12px;color:var(--ink-soft);">Aprovação imediata · Sem taxa extra</div>
+        </div>
+        <div class="pay-check" id="check-pix"></div>
+      </button>
+
+      <button class="payment-method-btn" id="pay-card" onclick="selectPayMethod('card')">
+        <span style="font-size:20px;">💳</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;">Cartão de crédito ou débito</div>
+          <div style="font-size:12px;color:var(--ink-soft);">Visa, Mastercard, Elo e outros</div>
+        </div>
+        <div class="pay-check" id="check-card"></div>
+      </button>
+    </div>
+
+    <!-- TOTAL -->
+    <div style="margin:0 16px 16px;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--white);">
+      <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px;">
+        <span style="color:var(--ink-soft);">Frete</span>
+        <span id="pay-freight">R$ —</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px;">
+        <span style="color:var(--ink-soft);">Taxa da plataforma</span>
+        <span style="color:var(--ink-soft);">incluída</span>
+      </div>
+      <div style="height:1px;background:var(--line);margin:10px 0;"></div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;">
+        <span>Total</span>
+        <span id="pay-total">R$ —</span>
+      </div>
+    </div>
+
+    <div style="padding:0 16px 16px;">
+      <button class="btn btn-primary" id="pay-btn" onclick="processPayment()" disabled>
+        Ir para pagamento seguro →
+      </button>
+      <p style="font-size:11px;color:var(--ink-soft);text-align:center;margin-top:10px;">Processado com segurança pelo Mercado Pago</p>
+    </div>
+  </div>
+</div>
+<div class="screen" id="screen-post-trip">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Publicar viagem</span>
+  </div>
+  <div class="scroll-content">
+    <div class="field-group">
+      <div class="field-label">Cidade de origem</div>
+      <div class="city-wrap">
+        <input class="field" type="text" id="trip-origin" placeholder="Qualquer cidade do Brasil" autocomplete="off" oninput="cityAC(this,'trip-origin-sug')">
+        <div class="city-suggestions" id="trip-origin-sug"></div>
+      </div>
+      <div class="form-gap"></div>
+      <div class="field-label">Cidade de destino</div>
+      <div class="city-wrap">
+        <input class="field" type="text" id="trip-dest" placeholder="Qualquer cidade do Brasil" autocomplete="off" oninput="cityAC(this,'trip-dest-sug')">
+        <div class="city-suggestions" id="trip-dest-sug"></div>
+      </div>
+      <!-- MAPA aparece após preencher os dois campos -->
+      <div class="map-preview" id="trip-route-map"></div>
+      <div class="form-gap"></div>
+      <div class="field-label">Data da viagem</div>
+      <input class="field" type="date" id="trip-date">
+      <div class="form-gap"></div>
+      <div class="field-label">Período</div>
+      <select class="field" id="trip-period"><option value="manhã">Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option><option value="madrugada">Madrugada</option></select>
+      <div class="form-gap"></div>
+      <div class="field-label">Espaço disponível</div>
+      <select class="field" id="trip-space"><option value="até 5kg">até 5kg</option><option value="até 10kg">até 10kg</option><option value="até 20kg">até 20kg</option><option value="ilimitado">Bastante espaço</option></select>
+      <div class="form-gap"></div>
+      <div class="field-label">Preço do frete (R$)</div>
+      <input class="field" type="number" id="trip-price" placeholder="Ex: 45">
+      <div class="form-gap"></div><div class="form-gap"></div>
+      <button class="btn btn-primary" onclick="submitTrip()">Publicar viagem</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEUS ITENS (tabs: viagens + encomendas) -->
+<div class="screen" id="screen-my-items">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Meus itens</span>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-mytrips-btn" onclick="switchMyTab('trips')">🚗 Viagens</button>
+    <button class="tab-btn" id="tab-mypkgs-btn" onclick="switchMyTab('pkgs')">📦 Encomendas</button>
+  </div>
+  <div class="scroll-content" id="my-items-content" style="padding-top:12px"></div>
+  <div class="bottom-nav">
+    <button class="nav-btn" onclick="showScreen('screen-home')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Início</span></button>
+    <button class="nav-btn" onclick="showScreen('screen-browse-trips')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Buscar</span></button>
+    <button class="nav-btn active" onclick="showScreen('screen-my-items')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Meus itens</span></button>
+    <button class="nav-btn" onclick="showScreen('screen-profile')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Perfil</span></button>
+  </div>
+</div>
+
+<!-- PEDIDOS DA VIAGEM -->
+<div class="screen" id="screen-trip-requests">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-my-items')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Pedidos recebidos</span>
+  </div>
+  <div class="scroll-content" id="trip-requests-list" style="padding-top:12px"></div>
+</div>
+
+<!-- CHAT -->
+<div class="screen" id="screen-chat">
+  <div class="topbar">
+    <button class="back-btn" id="chat-back-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <div style="flex:1"><div class="title" id="chat-title">Chat</div><div style="font-size:11px;color:var(--ink-soft)" id="chat-sub"></div></div>
+  </div>
+  <div id="chat-code-bar"></div>
+  <div class="chat-messages" id="chat-messages"></div>
+  <div id="chat-actions-bar" style="padding:8px 16px;background:var(--white);border-top:1px solid var(--line);flex-shrink:0;"></div>
+  <div class="chat-input-bar">
+    <input class="chat-input" type="text" id="chat-input" placeholder="Mensagem…">
+    <button class="chat-send" onclick="sendMessage()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
+
+<!-- PERFIL -->
+<div class="screen" id="screen-profile">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Meu perfil</span>
+  </div>
+  <div class="scroll-content">
+    <div class="profile-header">
+      <div class="avatar-wrap" onclick="document.getElementById('avatar-input').click()">
+        <div id="prof-avatar-init" class="avatar-init">?</div>
+        <img id="prof-avatar-img" class="avatar-circle" src="" alt="" style="display:none;width:60px;height:60px;">
+        <div class="avatar-edit-badge">✏️</div>
+      </div>
+      <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+      <div>
+        <div class="profile-name" id="prof-name">—</div>
+        <div class="profile-city-tag" id="prof-city">—</div>
+        <div class="profile-email" id="prof-email">—</div>
+      </div>
+    </div>
+    <div style="margin-top:2px">
+      <div class="menu-item">📱 <span id="prof-wp">—</span></div>
+      <div class="menu-item" onclick="showScreen('screen-my-items')">📋 Minhas viagens e encomendas <span>›</span></div>
+      <div class="menu-item" onclick="showScreen('screen-browse-trips')">🔍 Buscar viagens disponíveis <span>›</span></div>
+      <div class="menu-item" onclick="showScreen('screen-browse-pkgs')">📦 Ver encomendas publicadas <span>›</span></div>
+      <div class="menu-item" onclick="openTerms('profile')">📋 Termos de Uso e regras <span>›</span></div>
+      <div class="menu-item" onclick="showScreen('screen-faq')">❓ Perguntas frequentes <span>›</span></div>
+      <div style="height:20px"></div>
+      <button class="btn btn-ghost" style="margin:0 20px;width:calc(100% - 40px)" onclick="doLogout()">Sair da conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- TELA DE AJUDA / FAQ -->
+<div class="screen" id="screen-faq">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-profile')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Perguntas frequentes</span>
+  </div>
+  <div class="scroll-content">
+    <div style="padding:16px">
+
+      <div style="background:var(--ink);border-radius:14px;padding:16px;margin-bottom:16px">
+        <p style="font-size:13px;font-weight:700;color:var(--volt);margin-bottom:4px">Precisa de ajuda?</p>
+        <p style="font-size:12px;color:#AEB6C4;line-height:1.6">Leia as dúvidas mais comuns abaixo. Se não encontrar o que procura, entre em contato pelo WhatsApp.</p>
+      </div>
+
+      <!-- FAQ ITEMS -->
+      <div class="app-faq-item">
+        <button class="app-faq-q" onclick="toggleFaq(this)">
+          <span>Quanto custa enviar uma encomenda?</span>
+          <span class="app-faq-icon">+</span>
+        </button>
+        <div class="app-faq-a">O valor é definido pelo transportador e aparece antes de você confirmar o pedido. Não há mensalidade nem taxa de cadastro — você só paga quando fechar um envio. O pagamento é processado com segurança pelo Mercado Pago.</div>
+      </div>
+
+      <div class="app-faq-item">
+        <button class="app-faq-q" onclick="toggleFaq(this)">
+          <span>O que não posso enviar?</span>
+          <span class="app-faq-icon">+</span>
+        </button>
+        <div class="app-faq-a">São proibidos: armas de fogo, munições, facas desembaladas, drogas ou substâncias ilícitas, animais vivos, dinheiro em espécie, joias não declaradas e materiais inflamáveis. Qualquer item ilegal segundo a lei brasileira também é vetado. O descumprimento pode resultar em suspensão da conta.</div>
+      </div>
+
+      <div class="app-faq-item">
+        <button class="app-faq-q" onclick="toggleFaq(this)">
+          <span>E se a encomenda for extraviada ou danificada?</span>
+          <span class="app-faq-icon">+</span>
+        </button>
+        <div class="app-faq-a">O transportador é responsável pelo item durante o trajeto. Em caso de problema, recomendamos registrar boletim de ocorrência imediatamente e comunicar a Trazu pelo canal de suporte. A cobertura fica limitada ao valor declarado pelo remetente no momento do envio.</div>
+      </div>
+
+      <div class="app-faq-item">
+        <button class="app-faq-q" onclick="toggleFaq(this)">
+          <span>Como funciona o pagamento? É seguro?</span>
+          <span class="app-faq-icon">+</span>
+        </button>
+        <div class="app-faq-a">Sim. O valor fica retido pela plataforma e só é liberado ao transportador depois que você confirma a entrega com um código de 4 dígitos. Se algo der errado antes da entrega, o valor é estornado. Aceitamos Pix e cartão de crédito ou débito.</div>
+      </div>
+
+      <div class="app-faq-item">
+        <button class="app-faq-q" onclick="toggleFaq(this)">
+          <span>Como funciona o código de entrega?</span>
+          <span class="app-faq-icon">+</span>
+        </button>
+        <div class="app-faq-a">Após confirmar o pedido, você recebe um código de 4 dígitos visível no chat. Na hora da entrega, mostre esse código para o transportador — ele digita no app para confirmar. Só assim o pagamento é liberado para ele.</div>
+      </div>
+
+      <div class="app-faq-item">
+        <button class="app-faq-q" onclick="toggleFaq(this)">
+          <span>Como funciona para quem quer viajar e ganhar?</span>
+          <span class="app-faq-icon">+</span>
+        </button>
+        <div class="app-faq-a">Você publica a rota que já vai fazer — origem, destino, data e espaço disponível. Quando alguém quiser enviar algo nesse caminho, você recebe uma solicitação, conversa pelo chat e decide se aceita. Sem obrigação de aceitar todos os pedidos.</div>
+      </div>
+
+      <div class="app-faq-item">
+        <button class="app-faq-q" onclick="toggleFaq(this)">
+          <span>Posso publicar uma encomenda sem ter viagem disponível?</span>
+          <span class="app-faq-icon">+</span>
+        </button>
+        <div class="app-faq-a">Sim! Na tela inicial toque em "Publicar encomenda". Você descreve o que quer enviar e transportadores que fizerem esse trajeto poderão se oferecer para levar.</div>
+      </div>
+
+      <div class="app-faq-item">
+        <button class="app-faq-q" onclick="toggleFaq(this)">
+          <span>Meus dados estão seguros?</span>
+          <span class="app-faq-icon">+</span>
+        </button>
+        <div class="app-faq-a">Sim. Seus dados são tratados conforme a Lei Geral de Proteção de Dados (LGPD). Não vendemos informações a terceiros. Dados de verificação de identidade são usados exclusivamente para segurança da plataforma.</div>
+      </div>
+
+      <div style="height:20px"></div>
+      <button class="btn btn-ghost" onclick="showScreen('screen-terms')">Ver Termos de Uso completos</button>
+      <div style="height:16px"></div>
+      <a href="https://wa.me/5527999999999" style="display:block;text-align:center;font-size:13px;color:var(--ink-soft);text-decoration:none;padding:14px">
+        💬 Falar com o suporte pelo WhatsApp
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- TELA DE TERMOS DE USO -->
+<div class="screen" id="screen-terms">
+  <div class="topbar">
+    <button class="back-btn" id="terms-back-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14203B" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+    <span class="title">Termos de Uso</span>
+  </div>
+  <div class="scroll-content">
+    <div class="terms-body">
+
+      <div class="terms-highlight">
+        ⚠️ Leia com atenção antes de usar a Trazu. Ao criar uma conta você concorda com todas as regras abaixo.
+      </div>
+
+      <h2>1. O que é a Trazu</h2>
+      <p>A Trazu é uma plataforma de intermediação que conecta pessoas que precisam enviar encomendas com pessoas que já vão fazer um trajeto por conta própria. A Trazu não é uma transportadora, não possui frota própria e não contrata motoristas.</p>
+
+      <h2>2. Itens proibidos — LEIA COM ATENÇÃO</h2>
+      <p>É <strong>estritamente proibido</strong> enviar ou transportar os seguintes itens pela plataforma:</p>
+      <ul>
+        <li>🔫 Armas de fogo, munições ou artefatos explosivos de qualquer tipo</li>
+        <li>🔪 Facas, canivetes, armas brancas ou objetos cortantes não embalados</li>
+        <li>💊 Substâncias ilícitas, entorpecentes ou precursores químicos controlados</li>
+        <li>🐾 Animais vivos de qualquer espécie</li>
+        <li>💵 Dinheiro em espécie, joias ou metais preciosos não declarados</li>
+        <li>☢️ Materiais inflamáveis, radioativos ou perigosos</li>
+        <li>🍖 Alimentos perecíveis sem embalagem adequada e sem acordo prévio</li>
+        <li>📦 Qualquer item cuja posse ou transporte seja vedado por lei brasileira</li>
+      </ul>
+      <p>O descumprimento dessas regras pode resultar em suspensão imediata da conta e responsabilização civil e criminal do usuário.</p>
+
+      <h2>3. Responsabilidade e seguro</h2>
+      <h3>Extravio, roubo e furto</h3>
+      <p>A Trazu não é responsável por perdas, danos, extravios, roubos ou furtos de itens durante o transporte. A responsabilidade recai diretamente sobre o transportador, que age como depositário do bem.</p>
+      <p>Em caso de ocorrência, recomendamos:</p>
+      <ul>
+        <li>Registrar boletim de ocorrência imediatamente</li>
+        <li>Acionar o seguro complementar, se contratado</li>
+        <li>Comunicar a Trazu pelo canal de suporte</li>
+      </ul>
+      <h3>Seguro complementar</h3>
+      <p>A Trazu poderá oferecer futuramente a contratação de seguro complementar em parceria com seguradora certificada, mediante comunicação prévia aos usuários.</p>
+
+      <h2>4. Pagamento e escrow</h2>
+      <p>O valor do frete pago pelo remetente fica retido pela plataforma e só é liberado ao transportador após a confirmação de entrega por código de 4 dígitos. Isso protege ambas as partes.</p>
+
+      <h2>5. Verificação de identidade</h2>
+      <p>Todo usuário deve fornecer dados reais de cadastro. A Trazu pode solicitar verificação adicional de identidade a qualquer momento. Dados falsos resultam em banimento imediato.</p>
+
+      <h2>6. Avaliações e conduta</h2>
+      <p>Ambas as partes se avaliam após cada entrega. Comportamentos abusivos, fraudes ou descumprimento destes termos resultam em suspensão ou exclusão permanente da conta.</p>
+
+      <h2>7. Caráter ocasional do transporte</h2>
+      <p>A plataforma destina-se ao transporte ocasional por pessoas que já fariam o trajeto por outro motivo. Não é permitido o uso profissional habitual de transporte de cargas sem os devidos registros legais (TAC/ANTT).</p>
+
+      <h2>8. Privacidade</h2>
+      <p>Seus dados são tratados conforme a Lei Geral de Proteção de Dados (LGPD). Não vendemos dados a terceiros. Informações de verificação de identidade são usadas exclusivamente para segurança.</p>
+
+      <div style="height:20px"></div>
+      <p style="font-size:11px;color:var(--ink-soft);text-align:center">Versão 1.0 · Trazu · Vitória/ES · Última atualização: Julho/2026</p>
+      <div style="height:30px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DELIVERY MODAL -->
+<div class="modal-overlay" id="modal-deliver">
+  <div class="modal-sheet">
+    <div class="modal-title">Confirmar entrega</div>
+    <p style="font-size:14px;color:var(--ink-soft);text-align:center;margin-bottom:16px">Digite o código de 4 dígitos que o remetente vai mostrar</p>
+    <input class="field mono" type="number" id="deliver-code-input" placeholder="4821" style="text-align:center;font-size:28px;letter-spacing:.2em">
+    <div style="margin-top:14px;display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-deliver')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="confirmDelivery()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── FIREBASE ──────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey:"AIzaSyBFonMhfI4Qky0Hw1resImfTxYwo6TrP6k",
+  authDomain:"trazu-app.firebaseapp.com",
+  projectId:"trazu-app",
+  storageBucket:"trazu-app.firebasestorage.app",
+  messagingSenderId:"459956771407",
+  appId:"1:459956771407:web:f5bb84434891bea18f683a"
+});
+const auth=firebase.auth(), db=firebase.firestore(), storage=firebase.storage();
+
+// ── STATE ─────────────────────────────────────────────────
+let cu=null, up=null, selTrip=null, curReqId=null, curChatUnsub=null, allTrips=[], allPkgs=[];
+let pendDelReqId=null, pendDelTripId=null, myTab='trips';
+let cityTimer=null, ibgeCache=null;
+
+// ── AUTH STATE ────────────────────────────────────────────
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    cu=user;
+    const snap=await db.collection('users').doc(user.uid).get();
+    up=snap.exists?snap.data():{name:user.email,whatsapp:'',city:''};
+    checkPaymentReturn();
+    showScreen('screen-home');
+  } else {
+    cu=null; up=null;
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-auth').classList.add('active');
+  }
+});
+
+// ── NAVIGATION ────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='screen-home')         loadHome();
+  if(id==='screen-browse-trips') loadTrips();
+  if(id==='screen-browse-pkgs')  loadPkgs();
+  if(id==='screen-my-items')     loadMyItems();
+  if(id==='screen-profile')      loadProfile();
+}
+
+// ── PASSWORD TOGGLE ───────────────────────────────────────
+function togglePw(id,btn){
+  const f=document.getElementById(id);
+  const show=f.type==='password';
+  f.type=show?'text':'password';
+  btn.textContent=show?'🙈':'👁';
+}
+
+// ── CITY AUTOCOMPLETE (IBGE) ──────────────────────────────
+async function getIBGE(){
+  if(ibgeCache) return ibgeCache;
+  const r=await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome');
+  ibgeCache=await r.json();
+  return ibgeCache;
+}
+
+function cityAC(input,sugId){
+  clearTimeout(cityTimer);
+  const q=input.value.trim();
+  const sug=document.getElementById(sugId);
+  if(q.length<2){sug.classList.remove('show');return;}
+  cityTimer=setTimeout(async()=>{
+    try{
+      const data=await getIBGE();
+      const hits=data.filter(m=>m.nome.toLowerCase().startsWith(q.toLowerCase())).slice(0,7);
+      if(!hits.length){sug.classList.remove('show');return;}
+      sug.innerHTML=hits.map(m=>{
+        const uf=m['regiao-imediata']['regiao-intermediaria'].UF.sigla;
+        return `<div class="city-suggestion" onclick="pickCity(event,'${m.nome}','${uf}','${input.id}','${sugId}')">
+          <span>${m.nome}</span><span class="city-uf">${uf}</span></div>`;
+      }).join('');
+      sug.classList.add('show');
+    }catch(e){sug.classList.remove('show');}
+  },280);
+}
+
+function pickCity(e,name,uf,inputId,sugId){
+  e.stopPropagation();
+  const label=`${name}/${uf}`;
+  document.getElementById(inputId).value=label;
+  document.getElementById(sugId).classList.remove('show');
+  // Mostrar mapa conforme o campo
+  if(inputId==='trip-origin'||inputId==='trip-dest') showTripMapPreview();
+  if(inputId==='pkg-dest') showMapPreview('pkg-dest','pkg-dest-map');
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.city-wrap'))
+    document.querySelectorAll('.city-suggestions').forEach(s=>s.classList.remove('show'));
+});
+
+// ── GOOGLE MAPS PREVIEW ───────────────────────────────────
+function showMapPreview(inputId,mapId){
+  const q=document.getElementById(inputId).value.trim();
+  const el=document.getElementById(mapId);
+  if(!q||!el) return;
+  el.innerHTML=`<iframe src="https://maps.google.com/maps?q=${encodeURIComponent(q)}&output=embed&z=11" loading="lazy"></iframe>`;
+  el.classList.add('show');
+}
+
+function showTripMapPreview(){
+  const ori=document.getElementById('trip-origin').value.trim();
+  const dst=document.getElementById('trip-dest').value.trim();
+  const el=document.getElementById('trip-route-map');
+  if(!el) return;
+  if(ori&&dst){
+    el.innerHTML=`<iframe src="https://maps.google.com/maps?saddr=${encodeURIComponent(ori)}&daddr=${encodeURIComponent(dst)}&output=embed" loading="lazy"></iframe>`;
+    el.classList.add('show');
+  } else if(ori||dst){
+    showMapPreview(ori?'trip-origin':'trip-dest','trip-route-map');
+  }
+}
+
+// ── PAGAMENTO ─────────────────────────────────────────────
+let payMethod = null;
+let pendingRequestId = null;
+let pendingRequestData = null;
+
+function selectPayMethod(method) {
+  payMethod = method;
+  ['pix','card'].forEach(m => {
+    document.getElementById(`pay-${m}`).classList.toggle('selected', m === method);
+  });
+  document.getElementById('pay-btn').disabled = false;
+}
+
+function openPaymentScreen(reqId, reqData) {
+  pendingRequestId = reqId;
+  pendingRequestData = reqData;
+  payMethod = null;
+  ['pix','card'].forEach(m => document.getElementById(`pay-${m}`).classList.remove('selected'));
+  document.getElementById('pay-btn').disabled = true;
+
+  const price = selTrip?.price || 0;
+  document.getElementById('pay-freight').textContent = `R$ ${price},00`;
+  document.getElementById('pay-total').textContent   = `R$ ${price},00`;
+
+  document.getElementById('payment-summary').innerHTML = `
+    <div class="card" style="margin:0 0 0 0">
+      <div class="route-line">
+        <span class="route-dot origin"></span>
+        <span class="route-city">${reqData.origin}</span>
+        <div class="route-track"></div>
+        <span class="route-city">${reqData.destination}</span>
+        <span class="route-dot dest"></span>
+      </div>
+      <div class="card-sub">Item: ${reqData.item} · ${reqData.weight}</div>
+      <div class="card-sub">Transportador: ${reqData.carrierName}</div>
+    </div>`;
+
+  showScreen('screen-payment');
+}
+
+async function processPayment() {
+  if (!payMethod) { showToast('Escolha um método de pagamento'); return; }
+  const btn = document.getElementById('pay-btn');
+  btn.textContent = 'Aguarde…';
+  btn.disabled = true;
+
+  try {
+    const price = parseFloat(selTrip?.price || 0);
+    const description = `Trazu — ${pendingRequestData.origin} → ${pendingRequestData.destination}`;
+
+    const response = await fetch('/api/create-preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: price,
+        description,
+        payerEmail: cu.email,
+        requestId: pendingRequestId
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.init_point) {
+      throw new Error(data.error || 'Erro ao criar pagamento');
+    }
+
+    // Atualiza o pedido como "aguardando pagamento"
+    await db.collection('requests').doc(pendingRequestId).update({ paymentStatus: 'pending' });
+
+    // Redireciona para o checkout do Mercado Pago
+    window.location.href = data.init_point;
+
+  } catch (err) {
+    console.error(err);
+    showToast('Erro ao processar pagamento. Tente novamente.');
+    btn.textContent = 'Ir para pagamento seguro →';
+    btn.disabled = false;
+  }
+}
+
+// Verifica retorno do Mercado Pago ao abrir o app
+function checkPaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('payment');
+  if (status === 'success') {
+    showToast('✅ Pagamento confirmado!');
+    window.history.replaceState({}, '', window.location.pathname);
+  } else if (status === 'failure') {
+    showToast('❌ Pagamento não concluído. Tente novamente.');
+    window.history.replaceState({}, '', window.location.pathname);
+  } else if (status === 'pending') {
+    showToast('⏳ Pagamento em análise. Avisaremos em breve.');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+// ── FAQ ───────────────────────────────────────────────────
+function toggleFaq(btn) {
+  const item = btn.closest('.app-faq-item');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.app-faq-item.open').forEach(i => i.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+
+// ── TERMS ─────────────────────────────────────────────────
+let termsReturnScreen = 'screen-auth';
+function openTerms(from){
+  termsReturnScreen = from==='register'||from==='login' ? 'screen-auth' : from==='pkg' ? 'screen-post-pkg' : 'screen-profile';
+  document.getElementById('terms-back-btn').onclick=()=>showScreen(termsReturnScreen);
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-terms').classList.add('active');
+}
+
+// ── AUTH ─────────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('tab-login').style.display=tab==='login'?'block':'none';
+  document.getElementById('tab-register').style.display=tab==='register'?'block':'none';
+}
+async function doLogin(){
+  const e=document.getElementById('login-email').value.trim();
+  const p=document.getElementById('login-password').value;
+  if(!e||!p){showToast('Preencha e-mail e senha');return;}
+  try{await auth.signInWithEmailAndPassword(e,p);}
+  catch{showToast('E-mail ou senha incorretos');}
+}
+async function doRegister(){
+  const name=document.getElementById('reg-name').value.trim();
+  const wp=document.getElementById('reg-whatsapp').value.trim();
+  const city=document.getElementById('reg-city').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const pw=document.getElementById('reg-password').value;
+  if(!name||!email||!pw||!wp||!city){showToast('Preencha todos os campos');return;}
+  if(pw.length<6){showToast('Senha precisa ter ao menos 6 caracteres');return;}
+  if(!document.getElementById('reg-terms').checked){showToast('Aceite os Termos de Uso para continuar');return;}
+  try{
+    const cred=await auth.createUserWithEmailAndPassword(email,pw);
+    await db.collection('users').doc(cred.user.uid).set({name,whatsapp:wp,city,email,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    up={name,whatsapp:wp,city,email};
+  }catch(e){showToast(e.code==='auth/email-already-in-use'?'E-mail já cadastrado':'Erro ao criar conta');}
+}
+async function doLogout(){await auth.signOut();}
+
+// ── AVATAR ───────────────────────────────────────────────
+async function uploadAvatar(input){
+  if(!input.files[0]) return;
+  const file=input.files[0];
+  // Verificar tamanho máximo de 5MB
+  if(file.size > 5*1024*1024){showToast('Foto muito grande. Use uma imagem menor que 5MB.');return;}
+  try{
+    showToast('Enviando foto…');
+    const ref=storage.ref().child(`avatars/${cu.uid}`);
+    const metadata={contentType:file.type};
+    await ref.put(file,metadata);
+    const url=await ref.getDownloadURL();
+    await db.collection('users').doc(cu.uid).update({photoURL:url});
+    up.photoURL=url;
+    renderAvatar();
+    showToast('Foto atualizada! ✅');
+  }catch(e){
+    console.error('Erro upload foto:',e.code, e.message);
+    if(e.code==='storage/unauthorized'){
+      showToast('Ative o Firebase Storage no console');
+    } else {
+      showToast('Erro ao enviar foto: '+e.message);
+    }
+  }
+}
+
+function renderAvatar(){
+  const init=document.getElementById('prof-avatar-init');
+  const img=document.getElementById('prof-avatar-img');
+  if(up?.photoURL){
+    img.onload=()=>{img.style.display='block';init.style.display='none';};
+    img.onerror=()=>{img.style.display='none';init.style.display='flex';};
+    img.src=up.photoURL+'?t='+Date.now();
+  } else {
+    img.style.display='none';
+    init.style.display='flex';
+    init.textContent=(up?.name||'?').charAt(0).toUpperCase();
+  }
+}
+
+// ── HOME ─────────────────────────────────────────────────
+async function loadHome(){
+  if(!cu) return;
+  document.getElementById('home-name').textContent=(up?.name||'').split(' ')[0];
+  // Encomendas publicadas
+  const ps=await db.collection('pkgs').where('senderId','==',cu.uid).where('status','in',['open','matched']).orderBy('createdAt','desc').limit(5).get();
+  document.getElementById('home-pkgs-list').innerHTML=ps.empty
+    ?'<div class="empty"><div class="empty-icon">📦</div><p>Nenhuma encomenda publicada</p></div>'
+    :ps.docs.map(d=>{const r=d.data();return`<div class="card" onclick="openPkgChat('${d.id}')"><div class="card-row"><span class="card-title">${r.item}</span><span class="badge badge-${r.status}">${r.status==='open'?'Aguardando':'Combinado'}</span></div><div class="card-sub" style="margin-top:4px">${r.origin} → ${r.destination}</div></div>`;}).join('');
+  // Viagens publicadas
+  const ts=await db.collection('trips').where('carrierId','==',cu.uid).where('status','==','open').orderBy('createdAt','desc').limit(5).get();
+  document.getElementById('home-trips-list').innerHTML=ts.empty
+    ?'<div class="empty"><div class="empty-icon">🚗</div><p>Nenhuma viagem publicada</p></div>'
+    :ts.docs.map(d=>{const t=d.data();return`<div class="card" onclick="openTripRequests('${d.id}')"><div class="card-row"><span class="card-title">${t.origin} → ${t.destination}</span><span class="badge badge-open">Aberta</span></div><div class="card-sub" style="margin-top:4px">${t.date} · ${t.period}</div></div>`;}).join('');
+}
+
+// ── BROWSE TRIPS ─────────────────────────────────────────
+async function loadTrips(){
+  try{
+    const snap=await db.collection('trips').where('status','==','open').get();
+    allTrips=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // ordenar no cliente para evitar necessidade de índice composto no Firestore
+    allTrips.sort((a,b)=>{
+      const ta=a.createdAt?.seconds||0;
+      const tb=b.createdAt?.seconds||0;
+      return tb-ta;
+    });
+    renderTrips(allTrips);
+  }catch(e){
+    console.error('Erro ao carregar viagens:',e);
+    document.getElementById('browse-trips-list').innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>Erro ao carregar viagens. Tente novamente.</p></div>';
+  }
+}
+function filterTrips(){
+  const o=document.getElementById('ft-origin').value.toLowerCase();
+  const d=document.getElementById('ft-dest').value.toLowerCase();
+  renderTrips(allTrips.filter(t=>(!o||t.origin.toLowerCase().includes(o))&&(!d||t.destination.toLowerCase().includes(d))));
+}
+function renderTrips(trips){
+  const el=document.getElementById('browse-trips-list');
+  if(!trips.length){el.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><p>Nenhuma viagem encontrada</p></div>';return;}
+  el.innerHTML=trips.map(t=>`
+    <div class="card" onclick="openRequestForm('${t.id}')">
+      <div class="route-line"><span class="route-dot origin"></span><span class="route-city">${t.origin}</span><div class="route-track"></div><span class="route-city">${t.destination}</span><span class="route-dot dest"></span></div>
+      <div class="card-row" style="margin-top:6px"><span class="card-sub">${t.date} · ${t.period} · ${t.space}</span><span style="font-size:15px;font-weight:700">R$ ${t.price}</span></div>
+      <div class="card-sub" style="margin-top:4px">Transportador: ${t.carrierName}</div>
+    </div>`).join('');
+}
+
+// ── BROWSE PKGS (para transportadores) ───────────────────
+async function loadPkgs(){
+  const snap=await db.collection('pkgs').where('status','==','open').orderBy('createdAt','desc').limit(80).get();
+  allPkgs=snap.docs.map(d=>({id:d.id,...d.data()}));
+  const el=document.getElementById('browse-pkgs-list');
+  if(!allPkgs.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>Nenhuma encomenda publicada ainda</p></div>';return;}
+  el.innerHTML=allPkgs.map(p=>`
+    <div class="card">
+      <div class="route-line"><span class="route-dot origin"></span><span class="route-city">${p.origin}</span><div class="route-track"></div><span class="route-city">${p.destination}</span><span class="route-dot dest"></span></div>
+      <div class="card-row" style="margin-top:4px"><span class="card-sub">${p.item} · ${p.weight}</span><span style="font-size:14px;font-weight:700;color:var(--volt-deep)">Paga R$ ${p.price}</span></div>
+      <div class="card-sub">Remetente: ${p.senderName}</div>
+      <div style="margin-top:10px">
+        <button class="btn btn-primary btn-sm" onclick="offerToCarry('${p.id}')">Me ofereço para levar</button>
+      </div>
+    </div>`).join('');
+}
+
+async function offerToCarry(pkgId){
+  const pkg=allPkgs.find(p=>p.id===pkgId);
+  if(!pkg) return;
+  if(pkg.senderId===cu.uid){showToast('Esta é sua própria encomenda');return;}
+  // Cria um request ligando transportador à encomenda
+  try{
+    const ref=await db.collection('requests').add({
+      pkgId, tripId:'direct', carrierId:cu.uid, carrierName:up.name,
+      senderId:pkg.senderId, senderName:pkg.senderName,
+      origin:pkg.origin, destination:pkg.destination,
+      item:pkg.item, weight:pkg.weight, value:pkg.value,
+      pickup:pkg.pickup, delivery:pkg.delivery,
+      status:'pending', code:String(Math.floor(1000+Math.random()*9000)),
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await db.collection('pkgs').doc(pkgId).update({status:'matched'});
+    showToast('Proposta enviada!');
+    openChatFromRequest(ref.id,'direct','carrier');
+  }catch(e){showToast('Erro ao enviar proposta');console.error(e);}
+}
+
+// ── CEP AUTOCOMPLETE (ViaCEP) ─────────────────────────────
+function maskCep(input){
+  let v=input.value.replace(/\D/g,'');
+  if(v.length>5) v=v.slice(0,5)+'-'+v.slice(5,8);
+  input.value=v;
+}
+
+async function buscarCep(cep, fieldId){
+  const raw=cep.replace(/\D/g,'');
+  const statusId=fieldId+'-status';
+  const statusEl=document.getElementById(statusId);
+  if(raw.length!==8){
+    if(statusEl) statusEl.textContent='';
+    return;
+  }
+  if(statusEl) statusEl.textContent='🔍 Buscando endereço...';
+  try{
+    const r=await fetch(`https://viacep.com.br/ws/${raw}/json/`);
+    const d=await r.json();
+    if(d.erro){
+      if(statusEl) statusEl.textContent='❌ CEP não encontrado. Digite o endereço manualmente.';
+      return;
+    }
+    const endereco=`${d.logradouro?d.logradouro+', ':''}${d.bairro?d.bairro+', ':''}${d.localidade}/${d.uf}`;
+    const field=document.getElementById(fieldId);
+    if(field){
+      field.value=endereco;
+      field.focus();
+      // Posicionar cursor no início para o usuário adicionar o número
+      field.setSelectionRange(d.logradouro?d.logradouro.length+2:0, d.logradouro?d.logradouro.length+2:0);
+    }
+    if(statusEl) statusEl.textContent='✅ '+d.localidade+'/'+d.uf+' — adicione o número';
+  }catch(e){
+    if(statusEl) statusEl.textContent='⚠️ Erro ao buscar CEP. Digite o endereço manualmente.';
+  }
+}
+
+// ── POST PKG ─────────────────────────────────────────────
+async function submitPkg(){
+  const origin  =document.getElementById('pkg-origin').value.trim();
+  const dest    =document.getElementById('pkg-dest').value.trim();
+  const item    =document.getElementById('pkg-item').value.trim();
+  const weight  =document.getElementById('pkg-weight').value;
+  const value   =document.getElementById('pkg-value').value;
+  const pickup  =document.getElementById('pkg-pickup').value.trim();
+  const delivery=document.getElementById('pkg-delivery').value.trim();
+  const price   =document.getElementById('pkg-price').value;
+  if(!origin||!dest){showToast('Informe a cidade de origem e destino');return;}
+  if(!item){showToast('Descreva o item que vai enviar');return;}
+  if(!pickup){showToast('Informe o endereço de coleta');return;}
+  if(!delivery){showToast('Informe o endereço de entrega');return;}
+  if(!price){showToast('Informe o preço que pagaria');return;}
+  if(!document.getElementById('pkg-terms').checked){showToast('Confirme a declaração de conteúdo antes de publicar');return;}
+  try{
+    await db.collection('pkgs').add({
+      senderId:cu.uid, senderName:up.name,
+      origin, destination:dest, item, weight,
+      value:value||'0', pickup, delivery, price,
+      status:'open',
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('Encomenda publicada! ✅');
+    // Limpar todos os campos
+    ['pkg-origin','pkg-dest','pkg-item','pkg-value','pkg-pickup','pkg-pickup-cep',
+     'pkg-delivery','pkg-delivery-cep','pkg-price'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    ['pkg-pickup-status','pkg-delivery-status'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.textContent='';
+    });
+    document.getElementById('pkg-dest-map').classList.remove('show');
+    document.getElementById('pkg-terms').checked=false;
+    showScreen('screen-my-items');
+    myTab='pkgs';
+    switchMyTab('pkgs');
+  }catch(e){
+    console.error('Erro submitPkg:',e.code, e.message);
+    showToast('Erro ao publicar: '+e.message);
+  }
+}
+
+// ── REQUEST FORM ─────────────────────────────────────────
+function openRequestForm(tripId){
+  selTrip=allTrips.find(t=>t.id===tripId);
+  if(!selTrip) return;
+  document.getElementById('request-trip-summary').innerHTML=`
+    <div class="card" style="margin:0">
+      <div class="route-line"><span class="route-dot origin"></span><span class="route-city">${selTrip.origin}</span><div class="route-track"></div><span class="route-city">${selTrip.destination}</span><span class="route-dot dest"></span></div>
+      <div class="card-sub">${selTrip.date} · ${selTrip.period} · ${selTrip.space}</div>
+      <div style="margin-top:8px;font-weight:700">R$ ${selTrip.price}</div>
+    </div>`;
+  showScreen('screen-request');
+}
+async function submitRequest(){
+  if(!selTrip) return;
+  const item    =document.getElementById('req-item').value.trim();
+  const weight  =document.getElementById('req-weight').value;
+  const value   =document.getElementById('req-value').value;
+  const pickup  =document.getElementById('req-pickup').value.trim();
+  const delivery=document.getElementById('req-delivery').value.trim();
+  if(!item||!pickup||!delivery){showToast('Preencha todos os campos');return;}
+  try{
+    const reqData = {
+      tripId:selTrip.id, carrierId:selTrip.carrierId, carrierName:selTrip.carrierName,
+      senderId:cu.uid, senderName:up.name,
+      origin:selTrip.origin, destination:selTrip.destination,
+      item,weight,value,pickup,delivery,status:'pending',
+      paymentStatus:'unpaid',
+      code:String(Math.floor(1000+Math.random()*9000)),
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const ref=await db.collection('requests').add(reqData);
+    showToast('Pedido criado — agora confirme o pagamento!');
+    ['req-item','req-value','req-pickup','req-delivery'].forEach(id=>document.getElementById(id).value='');
+    openPaymentScreen(ref.id, reqData);
+  }catch(e){showToast('Erro ao enviar pedido');console.error(e);}
+}
+
+// ── POST TRIP ─────────────────────────────────────────────
+async function submitTrip(){
+  const origin=document.getElementById('trip-origin').value.trim();
+  const dest  =document.getElementById('trip-dest').value.trim();
+  const date  =document.getElementById('trip-date').value;
+  const period=document.getElementById('trip-period').value;
+  const space =document.getElementById('trip-space').value;
+  const price =document.getElementById('trip-price').value;
+  if(!origin){showToast('Informe a cidade de origem');return;}
+  if(!dest){showToast('Informe a cidade de destino');return;}
+  if(!date){showToast('Informe a data da viagem');return;}
+  if(!price){showToast('Informe o preço do frete');return;}
+  try{
+    await db.collection('trips').add({
+      carrierId:cu.uid, carrierName:up.name,
+      origin, destination:dest, date, period, space, price,
+      status:'open',
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('Viagem publicada! ✅');
+    ['trip-origin','trip-dest','trip-date','trip-price'].forEach(id=>document.getElementById(id).value='');
+    const mapEl=document.getElementById('trip-route-map');
+    if(mapEl) mapEl.classList.remove('show');
+    myTab='trips';
+    showScreen('screen-my-items');
+  }catch(e){
+    console.error('Erro submitTrip:',e.code,e.message);
+    showToast('Erro ao publicar: '+e.message);
+  }
+}
+
+// ── MY ITEMS (tabs) ───────────────────────────────────────
+function switchMyTab(tab){
+  myTab=tab;
+  document.getElementById('tab-mytrips-btn').classList.toggle('active',tab==='trips');
+  document.getElementById('tab-mypkgs-btn').classList.toggle('active',tab==='pkgs');
+  loadMyItems();
+}
+async function loadMyItems(){
+  if(!cu) return;
+  const el=document.getElementById('my-items-content');
+  el.innerHTML='<div class="empty"><p style="color:var(--ink-soft)">Carregando...</p></div>';
+  try{
+    if(myTab==='trips'){
+      const snap=await db.collection('trips').where('carrierId','==',cu.uid).get();
+      const docs=snap.docs.sort((a,b)=>(b.data().createdAt?.seconds||0)-(a.data().createdAt?.seconds||0));
+      el.innerHTML=docs.length===0
+        ?`<div class="empty"><div class="empty-icon">🚗</div><p>Nenhuma viagem publicada</p></div><div style="padding:0 16px"><button class="btn btn-primary" onclick="showScreen('screen-post-trip')">Publicar viagem</button></div>`
+        :docs.map(d=>{const t=d.data();return`<div class="card"><div class="card-row"><span class="card-title">${t.origin} → ${t.destination}</span><span class="badge badge-${t.status==='open'?'open':'delivered'}">${t.status==='open'?'Aberta':'Encerrada'}</span></div><div class="card-sub" style="margin-top:4px">${t.date} · ${t.period} · R$ ${t.price}</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dark btn-sm" onclick="openTripRequests('${d.id}')">Ver pedidos</button>${t.status==='open'?`<button class="btn btn-danger btn-sm" onclick="closeTrip('${d.id}')">Encerrar</button>`:''}</div></div>`;}).join('');
+    } else {
+      const snap=await db.collection('pkgs').where('senderId','==',cu.uid).get();
+      const docs=snap.docs.sort((a,b)=>(b.data().createdAt?.seconds||0)-(a.data().createdAt?.seconds||0));
+      el.innerHTML=docs.length===0
+        ?`<div class="empty"><div class="empty-icon">📦</div><p>Nenhuma encomenda publicada</p></div><div style="padding:0 16px"><button class="btn btn-primary" onclick="showScreen('screen-post-pkg')">Publicar encomenda</button></div>`
+        :docs.map(d=>{const p=d.data();return`<div class="card"><div class="card-row"><span class="card-title">${p.item}</span><span class="badge badge-${p.status}">${p.status==='open'?'Aguardando':p.status==='matched'?'Combinado':'Entregue'}</span></div><div class="route-line" style="margin:8px 0"><span class="route-dot origin"></span><span class="route-city" style="font-size:12px">${p.origin}</span><div class="route-track"></div><span class="route-city" style="font-size:12px">${p.destination}</span><span class="route-dot dest"></span></div><div class="card-sub">${p.weight} · Paga R$ ${p.price}</div></div>`;}).join('');
+    }
+  }catch(e){
+    console.error('Erro loadMyItems:',e);
+    el.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>Erro ao carregar. Tente novamente.</p></div>';
+  }
+}
+
+async function closeTrip(id){
+  await db.collection('trips').doc(id).update({status:'closed'});
+  showToast('Viagem encerrada'); loadMyItems();
+}
+
+async function openTripRequests(tripId){
+  const snap=await db.collection('requests').where('tripId','==',tripId).orderBy('createdAt','desc').get();
+  const el=document.getElementById('trip-requests-list');
+  el.innerHTML=snap.empty
+    ?'<div class="empty"><div class="empty-icon">📭</div><p>Nenhum pedido ainda</p></div>'
+    :snap.docs.map(d=>{const r=d.data();return`<div class="card"><div class="card-row"><span class="card-title">${r.item}</span><span class="badge badge-${r.status}">${statusLabel(r.status)}</span></div><div class="card-sub" style="margin-top:4px">De: ${r.senderName} · ${r.weight}</div><div class="card-sub">Coleta: ${r.pickup}</div><div class="card-sub">Entrega: ${r.delivery}</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dark btn-sm" onclick="openChatFromRequest('${d.id}','${r.tripId}','carrier')">Chat</button>${r.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="acceptReq('${d.id}','${tripId}')">Aceitar</button><button class="btn btn-danger btn-sm" onclick="rejectReq('${d.id}','${tripId}')">Recusar</button>`:''}${r.status==='accepted'?`<button class="btn btn-dark btn-sm" onclick="startTransit('${d.id}','${tripId}')">Coletei ✓</button>`:''}${r.status==='inTransit'?`<button class="btn btn-primary btn-sm" onclick="openDeliverModal('${d.id}','${tripId}')">Confirmar entrega</button>`:''}</div></div>`;}).join('');
+  showScreen('screen-trip-requests');
+}
+
+async function openPkgChat(pkgId){
+  const snap=await db.collection('requests').where('pkgId','==',pkgId).limit(1).get();
+  if(!snap.empty) openChatFromRequest(snap.docs[0].id,'direct','sender');
+  else showToast('Ainda sem transportador conectado');
+}
+
+async function acceptReq(id,tripId)  {await db.collection('requests').doc(id).update({status:'accepted'});showToast('Aceito!');openTripRequests(tripId);}
+async function rejectReq(id,tripId)  {await db.collection('requests').doc(id).update({status:'rejected'});showToast('Recusado');openTripRequests(tripId);}
+async function startTransit(id,tripId){await db.collection('requests').doc(id).update({status:'inTransit'});showToast('Em rota!');openTripRequests(tripId);}
+
+// ── DELIVERY ─────────────────────────────────────────────
+function openDeliverModal(reqId,tripId){
+  pendDelReqId=reqId; pendDelTripId=tripId;
+  document.getElementById('deliver-code-input').value='';
+  document.getElementById('modal-deliver').classList.add('show');
+}
+async function confirmDelivery(){
+  const code=document.getElementById('deliver-code-input').value.trim();
+  const snap=await db.collection('requests').doc(pendDelReqId).get();
+  if(code!==snap.data().code){showToast('Código incorreto');return;}
+  await db.collection('requests').doc(pendDelReqId).update({status:'delivered'});
+  closeModal('modal-deliver'); showToast('Entrega confirmada! ✅');
+  openTripRequests(pendDelTripId);
+}
+
+// ── CHAT ─────────────────────────────────────────────────
+async function openChatFromRequest(reqId,tripId,role){
+  curReqId=reqId;
+  if(curChatUnsub){curChatUnsub();curChatUnsub=null;}
+  const snap=await db.collection('requests').doc(reqId).get();
+  const req=snap.data();
+  document.getElementById('chat-title').textContent=role==='sender'?req.carrierName:req.senderName;
+  document.getElementById('chat-sub').textContent=`${req.origin} → ${req.destination}`;
+  document.getElementById('chat-back-btn').onclick=()=>showScreen(role==='sender'?'screen-home':'screen-trip-requests');
+  const codeBar=document.getElementById('chat-code-bar');
+  codeBar.innerHTML=(role==='sender'&&req.status!=='pending')?`<div class="chat-badge"><p>Código de retirada — mostre ao transportador na coleta</p><span class="code mono">${req.code}</span></div>`:'';
+  const actBar=document.getElementById('chat-actions-bar');
+  actBar.innerHTML='';
+  if(role==='carrier'){
+    if(req.status==='pending') actBar.innerHTML=`<div style="display:flex;gap:8px"><button class="btn btn-primary btn-sm" onclick="acceptReq('${reqId}','${tripId}')">Aceitar</button><button class="btn btn-danger btn-sm" onclick="rejectReq('${reqId}','${tripId}')">Recusar</button></div>`;
+    else if(req.status==='accepted') actBar.innerHTML=`<button class="btn btn-dark btn-sm" onclick="startTransit('${reqId}','${tripId}')">Coletei o item ✓</button>`;
+    else if(req.status==='inTransit') actBar.innerHTML=`<button class="btn btn-primary btn-sm" onclick="openDeliverModal('${reqId}','${tripId}')">Confirmar entrega</button>`;
+  }
+  const msgEl=document.getElementById('chat-messages');
+  msgEl.innerHTML='';
+  curChatUnsub=db.collection('requests').doc(reqId).collection('messages').orderBy('createdAt','asc').onSnapshot(snap=>{
+    msgEl.innerHTML=snap.docs.map(d=>{
+      const m=d.data(); const mine=m.from===cu.uid;
+      const ts=m.createdAt?new Date(m.createdAt.seconds*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+      return`<div class="msg ${mine?'mine':'theirs'}"><div class="msg-bubble">${m.text}</div><div class="msg-time">${ts}</div></div>`;
+    }).join('');
+    msgEl.scrollTop=msgEl.scrollHeight;
+  });
+  document.getElementById('chat-input').onkeydown=e=>{if(e.key==='Enter')sendMessage();};
+  showScreen('screen-chat');
+}
+async function sendMessage(){
+  const input=document.getElementById('chat-input');
+  const text=input.value.trim();
+  if(!text||!curReqId) return;
+  input.value='';
+  await db.collection('requests').doc(curReqId).collection('messages').add({
+    from:cu.uid, fromName:up.name, text, createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+// ── PROFILE ──────────────────────────────────────────────
+async function loadProfile(){
+  // Recarrega do Firestore para pegar photoURL atualizada
+  if(cu){
+    const snap=await db.collection('users').doc(cu.uid).get();
+    if(snap.exists) up={...up,...snap.data()};
+  }
+  document.getElementById('prof-name').textContent=up?.name||'—';
+  document.getElementById('prof-city').textContent=up?.city||'—';
+  document.getElementById('prof-email').textContent=cu?.email||'—';
+  document.getElementById('prof-wp').textContent=`WhatsApp: ${up?.whatsapp||'—'}`;
+  renderAvatar();
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function statusLabel(s){return{pending:'Aguardando',accepted:'Aceito',inTransit:'Em rota',delivered:'Entregue',rejected:'Recusado'}[s]||s;}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+</script>
+</body>
+</html>
