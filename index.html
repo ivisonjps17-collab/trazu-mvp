@@ -356,10 +356,22 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
       <input class="field" type="number" id="pkg-value" placeholder="Ex: 300">
       <div class="form-gap"></div>
       <div class="field-label">Endereço de coleta</div>
-      <input class="field" type="text" id="pkg-pickup" placeholder="Rua, número, bairro">
+      <div class="cep-wrap">
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input class="field" type="text" id="pkg-pickup-cep" placeholder="CEP (somente números)" maxlength="9" style="width:140px;flex-shrink:0" oninput="maskCep(this)" onblur="buscarCep(this.value,'pkg-pickup')">
+          <input class="field" type="text" id="pkg-pickup" placeholder="Rua, número, bairro — preenchido pelo CEP" style="flex:1">
+        </div>
+        <div id="pkg-pickup-status" style="font-size:11px;color:var(--ink-soft);margin-bottom:4px;min-height:16px"></div>
+      </div>
       <div class="form-gap"></div>
       <div class="field-label">Endereço de entrega</div>
-      <input class="field" type="text" id="pkg-delivery" placeholder="Rua, número, bairro">
+      <div class="cep-wrap">
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input class="field" type="text" id="pkg-delivery-cep" placeholder="CEP (somente números)" maxlength="9" style="width:140px;flex-shrink:0" oninput="maskCep(this)" onblur="buscarCep(this.value,'pkg-delivery')">
+          <input class="field" type="text" id="pkg-delivery" placeholder="Rua, número, bairro — preenchido pelo CEP" style="flex:1">
+        </div>
+        <div id="pkg-delivery-status" style="font-size:11px;color:var(--ink-soft);margin-bottom:4px;min-height:16px"></div>
+      </div>
       <div class="form-gap"></div>
       <div class="field-label">Preço que você pagaria (R$)</div>
       <input class="field" type="number" id="pkg-price" placeholder="Ex: 40">
@@ -424,11 +436,7 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
       <div class="prohibited-item">☢️ Materiais inflamáveis ou perigosos</div>
     </div>
 
-    <!-- SEGURO COMPLEMENTAR -->
-    <div class="insurance-box">
-      <h4>🛡️ Seguro complementar (em breve)</h4>
-      <p>Em breve você poderá adicionar um seguro de extravio por R$ 5,00. Sem o seguro, a cobertura em caso de perda fica limitada ao valor declarado do item.</p>
-    </div>
+    <!-- SEGURO: será adicionado quando parceria com seguradora for formalizada -->
 
     <div class="field-group">
       <div class="field-label">O que você vai enviar?</div>
@@ -441,10 +449,18 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
       <input class="field" type="number" id="req-value" placeholder="Ex: 200">
       <div class="form-gap"></div>
       <div class="field-label">Endereço de coleta</div>
-      <input class="field" type="text" id="req-pickup" placeholder="Rua, número, bairro">
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input class="field" type="text" id="req-pickup-cep" placeholder="CEP" maxlength="9" style="width:130px;flex-shrink:0" oninput="maskCep(this)" onblur="buscarCep(this.value,'req-pickup')">
+        <input class="field" type="text" id="req-pickup" placeholder="Rua, número, bairro" style="flex:1">
+      </div>
+      <div id="req-pickup-status" style="font-size:11px;color:var(--ink-soft);margin-bottom:8px;min-height:16px"></div>
       <div class="form-gap"></div>
       <div class="field-label">Endereço de entrega</div>
-      <input class="field" type="text" id="req-delivery" placeholder="Rua, número, bairro">
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input class="field" type="text" id="req-delivery-cep" placeholder="CEP" maxlength="9" style="width:130px;flex-shrink:0" oninput="maskCep(this)" onblur="buscarCep(this.value,'req-delivery')">
+        <input class="field" type="text" id="req-delivery" placeholder="Rua, número, bairro" style="flex:1">
+      </div>
+      <div id="req-delivery-status" style="font-size:11px;color:var(--ink-soft);margin-bottom:8px;min-height:16px"></div>
       <div class="form-gap"></div><div class="form-gap"></div>
       <button class="btn btn-primary" onclick="submitRequest()">Continuar para pagamento →</button>
     </div>
@@ -487,15 +503,6 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
           <div style="font-size:12px;color:var(--ink-soft);">Visa, Mastercard, Elo e outros</div>
         </div>
         <div class="pay-check" id="check-card"></div>
-      </button>
-
-      <button class="payment-method-btn" id="pay-boleto" onclick="selectPayMethod('boleto')">
-        <span style="font-size:20px;">🏦</span>
-        <div>
-          <div style="font-size:14px;font-weight:700;">Boleto bancário</div>
-          <div style="font-size:12px;color:var(--ink-soft);">Compensação em até 3 dias úteis</div>
-        </div>
-        <div class="pay-check" id="check-boleto"></div>
       </button>
     </div>
 
@@ -674,7 +681,7 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
           <span>E se a encomenda for extraviada ou danificada?</span>
           <span class="app-faq-icon">+</span>
         </button>
-        <div class="app-faq-a">O transportador é responsável pelo item durante o trajeto. Em caso de problema, recomendamos registrar boletim de ocorrência e comunicar a Trazu. Em breve ofereceremos seguro complementar embutido no checkout para maior proteção.</div>
+        <div class="app-faq-a">O transportador é responsável pelo item durante o trajeto. Em caso de problema, recomendamos registrar boletim de ocorrência imediatamente e comunicar a Trazu pelo canal de suporte. A cobertura fica limitada ao valor declarado pelo remetente no momento do envio.</div>
       </div>
 
       <div class="app-faq-item">
@@ -682,7 +689,7 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
           <span>Como funciona o pagamento? É seguro?</span>
           <span class="app-faq-icon">+</span>
         </button>
-        <div class="app-faq-a">Sim. O valor fica retido pela plataforma e só é liberado ao transportador depois que você confirma a entrega com um código de 4 dígitos. Se algo der errado antes da entrega, o valor é estornado. Aceitamos Pix, cartão de crédito, débito e boleto.</div>
+        <div class="app-faq-a">Sim. O valor fica retido pela plataforma e só é liberado ao transportador depois que você confirma a entrega com um código de 4 dígitos. Se algo der errado antes da entrega, o valor é estornado. Aceitamos Pix e cartão de crédito ou débito.</div>
       </div>
 
       <div class="app-faq-item">
@@ -767,7 +774,7 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
         <li>Comunicar a Trazu pelo canal de suporte</li>
       </ul>
       <h3>Seguro complementar</h3>
-      <p>A Trazu oferecerá em breve a opção de contratar seguro complementar de extravio por encomenda, em parceria com seguradora certificada. Sem o seguro, a cobertura é limitada ao valor declarado pelo remetente, sujeito à comprovação.</p>
+      <p>A Trazu poderá oferecer futuramente a contratação de seguro complementar em parceria com seguradora certificada, mediante comunicação prévia aos usuários.</p>
 
       <h2>4. Pagamento e escrow</h2>
       <p>O valor do frete pago pelo remetente fica retido pela plataforma e só é liberado ao transportador após a confirmação de entrega por código de 4 dígitos. Isso protege ambas as partes.</p>
@@ -785,7 +792,7 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
       <p>Seus dados são tratados conforme a Lei Geral de Proteção de Dados (LGPD). Não vendemos dados a terceiros. Informações de verificação de identidade são usadas exclusivamente para segurança.</p>
 
       <div style="height:20px"></div>
-      <p style="font-size:11px;color:var(--ink-soft);text-align:center">Versão 1.0 · Trazu · Vitória/ES · Última atualização: Julho/2025</p>
+      <p style="font-size:11px;color:var(--ink-soft);text-align:center">Versão 1.0 · Trazu · Vitória/ES · Última atualização: Julho/2026</p>
       <div style="height:30px"></div>
     </div>
   </div>
@@ -929,7 +936,7 @@ let pendingRequestData = null;
 
 function selectPayMethod(method) {
   payMethod = method;
-  ['pix','card','boleto'].forEach(m => {
+  ['pix','card'].forEach(m => {
     document.getElementById(`pay-${m}`).classList.toggle('selected', m === method);
   });
   document.getElementById('pay-btn').disabled = false;
@@ -939,7 +946,7 @@ function openPaymentScreen(reqId, reqData) {
   pendingRequestId = reqId;
   pendingRequestData = reqData;
   payMethod = null;
-  ['pix','card','boleto'].forEach(m => document.getElementById(`pay-${m}`).classList.remove('selected'));
+  ['pix','card'].forEach(m => document.getElementById(`pay-${m}`).classList.remove('selected'));
   document.getElementById('pay-btn').disabled = true;
 
   const price = selTrip?.price || 0;
@@ -1069,16 +1076,27 @@ async function doLogout(){await auth.signOut();}
 // ── AVATAR ───────────────────────────────────────────────
 async function uploadAvatar(input){
   if(!input.files[0]) return;
+  const file=input.files[0];
+  // Verificar tamanho máximo de 5MB
+  if(file.size > 5*1024*1024){showToast('Foto muito grande. Use uma imagem menor que 5MB.');return;}
   try{
     showToast('Enviando foto…');
-    const ref=storage.ref(`avatars/${cu.uid}`);
-    await ref.put(input.files[0]);
+    const ref=storage.ref().child(`avatars/${cu.uid}`);
+    const metadata={contentType:file.type};
+    await ref.put(file,metadata);
     const url=await ref.getDownloadURL();
     await db.collection('users').doc(cu.uid).update({photoURL:url});
     up.photoURL=url;
     renderAvatar();
-    showToast('Foto atualizada!');
-  }catch(e){showToast('Erro ao enviar foto. Verifique permissões do Storage.');}
+    showToast('Foto atualizada! ✅');
+  }catch(e){
+    console.error('Erro upload foto:',e.code, e.message);
+    if(e.code==='storage/unauthorized'){
+      showToast('Ative o Firebase Storage no console');
+    } else {
+      showToast('Erro ao enviar foto: '+e.message);
+    }
+  }
 }
 
 function renderAvatar(){
@@ -1113,9 +1131,20 @@ async function loadHome(){
 
 // ── BROWSE TRIPS ─────────────────────────────────────────
 async function loadTrips(){
-  const snap=await db.collection('trips').where('status','==','open').orderBy('createdAt','desc').limit(80).get();
-  allTrips=snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderTrips(allTrips);
+  try{
+    const snap=await db.collection('trips').where('status','==','open').get();
+    allTrips=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // ordenar no cliente para evitar necessidade de índice composto no Firestore
+    allTrips.sort((a,b)=>{
+      const ta=a.createdAt?.seconds||0;
+      const tb=b.createdAt?.seconds||0;
+      return tb-ta;
+    });
+    renderTrips(allTrips);
+  }catch(e){
+    console.error('Erro ao carregar viagens:',e);
+    document.getElementById('browse-trips-list').innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>Erro ao carregar viagens. Tente novamente.</p></div>';
+  }
 }
 function filterTrips(){
   const o=document.getElementById('ft-origin').value.toLowerCase();
@@ -1171,6 +1200,43 @@ async function offerToCarry(pkgId){
   }catch(e){showToast('Erro ao enviar proposta');console.error(e);}
 }
 
+// ── CEP AUTOCOMPLETE (ViaCEP) ─────────────────────────────
+function maskCep(input){
+  let v=input.value.replace(/\D/g,'');
+  if(v.length>5) v=v.slice(0,5)+'-'+v.slice(5,8);
+  input.value=v;
+}
+
+async function buscarCep(cep, fieldId){
+  const raw=cep.replace(/\D/g,'');
+  const statusId=fieldId+'-status';
+  const statusEl=document.getElementById(statusId);
+  if(raw.length!==8){
+    if(statusEl) statusEl.textContent='';
+    return;
+  }
+  if(statusEl) statusEl.textContent='🔍 Buscando endereço...';
+  try{
+    const r=await fetch(`https://viacep.com.br/ws/${raw}/json/`);
+    const d=await r.json();
+    if(d.erro){
+      if(statusEl) statusEl.textContent='❌ CEP não encontrado. Digite o endereço manualmente.';
+      return;
+    }
+    const endereco=`${d.logradouro?d.logradouro+', ':''}${d.bairro?d.bairro+', ':''}${d.localidade}/${d.uf}`;
+    const field=document.getElementById(fieldId);
+    if(field){
+      field.value=endereco;
+      field.focus();
+      // Posicionar cursor no início para o usuário adicionar o número
+      field.setSelectionRange(d.logradouro?d.logradouro.length+2:0, d.logradouro?d.logradouro.length+2:0);
+    }
+    if(statusEl) statusEl.textContent='✅ '+d.localidade+'/'+d.uf+' — adicione o número';
+  }catch(e){
+    if(statusEl) statusEl.textContent='⚠️ Erro ao buscar CEP. Digite o endereço manualmente.';
+  }
+}
+
 // ── POST PKG ─────────────────────────────────────────────
 async function submitPkg(){
   const origin  =document.getElementById('pkg-origin').value.trim();
@@ -1181,19 +1247,38 @@ async function submitPkg(){
   const pickup  =document.getElementById('pkg-pickup').value.trim();
   const delivery=document.getElementById('pkg-delivery').value.trim();
   const price   =document.getElementById('pkg-price').value;
-  if(!origin||!dest||!item||!pickup||!delivery||!price){showToast('Preencha todos os campos');return;}
+  if(!origin||!dest){showToast('Informe a cidade de origem e destino');return;}
+  if(!item){showToast('Descreva o item que vai enviar');return;}
+  if(!pickup){showToast('Informe o endereço de coleta');return;}
+  if(!delivery){showToast('Informe o endereço de entrega');return;}
+  if(!price){showToast('Informe o preço que pagaria');return;}
   if(!document.getElementById('pkg-terms').checked){showToast('Confirme a declaração de conteúdo antes de publicar');return;}
   try{
     await db.collection('pkgs').add({
       senderId:cu.uid, senderName:up.name,
-      origin,destination:dest,item,weight,value,pickup,delivery,price,
-      status:'open', createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      origin, destination:dest, item, weight,
+      value:value||'0', pickup, delivery, price,
+      status:'open',
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
-    showToast('Encomenda publicada!');
-    ['pkg-origin','pkg-dest','pkg-item','pkg-value','pkg-pickup','pkg-delivery','pkg-price'].forEach(id=>document.getElementById(id).value='');
+    showToast('Encomenda publicada! ✅');
+    // Limpar todos os campos
+    ['pkg-origin','pkg-dest','pkg-item','pkg-value','pkg-pickup','pkg-pickup-cep',
+     'pkg-delivery','pkg-delivery-cep','pkg-price'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    ['pkg-pickup-status','pkg-delivery-status'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.textContent='';
+    });
     document.getElementById('pkg-dest-map').classList.remove('show');
-    showScreen('screen-home');
-  }catch(e){showToast('Erro ao publicar');console.error(e);}
+    document.getElementById('pkg-terms').checked=false;
+    showScreen('screen-my-items');
+    myTab='pkgs';
+    switchMyTab('pkgs');
+  }catch(e){
+    console.error('Erro submitPkg:',e.code, e.message);
+    showToast('Erro ao publicar: '+e.message);
+  }
 }
 
 // ── REQUEST FORM ─────────────────────────────────────────
@@ -1241,18 +1326,27 @@ async function submitTrip(){
   const period=document.getElementById('trip-period').value;
   const space =document.getElementById('trip-space').value;
   const price =document.getElementById('trip-price').value;
-  if(!origin||!dest||!date||!price){showToast('Preencha todos os campos');return;}
+  if(!origin){showToast('Informe a cidade de origem');return;}
+  if(!dest){showToast('Informe a cidade de destino');return;}
+  if(!date){showToast('Informe a data da viagem');return;}
+  if(!price){showToast('Informe o preço do frete');return;}
   try{
     await db.collection('trips').add({
       carrierId:cu.uid, carrierName:up.name,
-      origin,destination:dest,date,period,space,price,
-      status:'open', createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      origin, destination:dest, date, period, space, price,
+      status:'open',
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
-    showToast('Viagem publicada!');
+    showToast('Viagem publicada! ✅');
     ['trip-origin','trip-dest','trip-date','trip-price'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('trip-route-map').classList.remove('show');
+    const mapEl=document.getElementById('trip-route-map');
+    if(mapEl) mapEl.classList.remove('show');
+    myTab='trips';
     showScreen('screen-my-items');
-  }catch(e){showToast('Erro ao publicar');console.error(e);}
+  }catch(e){
+    console.error('Erro submitTrip:',e.code,e.message);
+    showToast('Erro ao publicar: '+e.message);
+  }
 }
 
 // ── MY ITEMS (tabs) ───────────────────────────────────────
@@ -1265,16 +1359,24 @@ function switchMyTab(tab){
 async function loadMyItems(){
   if(!cu) return;
   const el=document.getElementById('my-items-content');
-  if(myTab==='trips'){
-    const snap=await db.collection('trips').where('carrierId','==',cu.uid).orderBy('createdAt','desc').get();
-    el.innerHTML=snap.empty
-      ?`<div class="empty"><div class="empty-icon">🚗</div><p>Nenhuma viagem publicada</p></div><div style="padding:0 16px"><button class="btn btn-primary" onclick="showScreen('screen-post-trip')">Publicar viagem</button></div>`
-      :snap.docs.map(d=>{const t=d.data();return`<div class="card"><div class="card-row"><span class="card-title">${t.origin} → ${t.destination}</span><span class="badge badge-${t.status==='open'?'open':'delivered'}">${t.status==='open'?'Aberta':'Encerrada'}</span></div><div class="card-sub" style="margin-top:4px">${t.date} · ${t.period} · R$ ${t.price}</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dark btn-sm" onclick="openTripRequests('${d.id}')">Ver pedidos</button>${t.status==='open'?`<button class="btn btn-danger btn-sm" onclick="closeTrip('${d.id}')">Encerrar</button>`:''}</div></div>`;}).join('');
-  } else {
-    const snap=await db.collection('pkgs').where('senderId','==',cu.uid).orderBy('createdAt','desc').get();
-    el.innerHTML=snap.empty
-      ?`<div class="empty"><div class="empty-icon">📦</div><p>Nenhuma encomenda publicada</p></div><div style="padding:0 16px"><button class="btn btn-primary" onclick="showScreen('screen-post-pkg')">Publicar encomenda</button></div>`
-      :snap.docs.map(d=>{const p=d.data();return`<div class="card"><div class="card-row"><span class="card-title">${p.item}</span><span class="badge badge-${p.status}">${p.status==='open'?'Aguardando':p.status==='matched'?'Combinado':'Entregue'}</span></div><div class="route-line" style="margin:8px 0"><span class="route-dot origin"></span><span class="route-city" style="font-size:12px">${p.origin}</span><div class="route-track"></div><span class="route-city" style="font-size:12px">${p.destination}</span><span class="route-dot dest"></span></div><div class="card-sub">${p.weight} · Paga R$ ${p.price}</div></div>`;}).join('');
+  el.innerHTML='<div class="empty"><p style="color:var(--ink-soft)">Carregando...</p></div>';
+  try{
+    if(myTab==='trips'){
+      const snap=await db.collection('trips').where('carrierId','==',cu.uid).get();
+      const docs=snap.docs.sort((a,b)=>(b.data().createdAt?.seconds||0)-(a.data().createdAt?.seconds||0));
+      el.innerHTML=docs.length===0
+        ?`<div class="empty"><div class="empty-icon">🚗</div><p>Nenhuma viagem publicada</p></div><div style="padding:0 16px"><button class="btn btn-primary" onclick="showScreen('screen-post-trip')">Publicar viagem</button></div>`
+        :docs.map(d=>{const t=d.data();return`<div class="card"><div class="card-row"><span class="card-title">${t.origin} → ${t.destination}</span><span class="badge badge-${t.status==='open'?'open':'delivered'}">${t.status==='open'?'Aberta':'Encerrada'}</span></div><div class="card-sub" style="margin-top:4px">${t.date} · ${t.period} · R$ ${t.price}</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-dark btn-sm" onclick="openTripRequests('${d.id}')">Ver pedidos</button>${t.status==='open'?`<button class="btn btn-danger btn-sm" onclick="closeTrip('${d.id}')">Encerrar</button>`:''}</div></div>`;}).join('');
+    } else {
+      const snap=await db.collection('pkgs').where('senderId','==',cu.uid).get();
+      const docs=snap.docs.sort((a,b)=>(b.data().createdAt?.seconds||0)-(a.data().createdAt?.seconds||0));
+      el.innerHTML=docs.length===0
+        ?`<div class="empty"><div class="empty-icon">📦</div><p>Nenhuma encomenda publicada</p></div><div style="padding:0 16px"><button class="btn btn-primary" onclick="showScreen('screen-post-pkg')">Publicar encomenda</button></div>`
+        :docs.map(d=>{const p=d.data();return`<div class="card"><div class="card-row"><span class="card-title">${p.item}</span><span class="badge badge-${p.status}">${p.status==='open'?'Aguardando':p.status==='matched'?'Combinado':'Entregue'}</span></div><div class="route-line" style="margin:8px 0"><span class="route-dot origin"></span><span class="route-city" style="font-size:12px">${p.origin}</span><div class="route-track"></div><span class="route-city" style="font-size:12px">${p.destination}</span><span class="route-dot dest"></span></div><div class="card-sub">${p.weight} · Paga R$ ${p.price}</div></div>`;}).join('');
+    }
+  }catch(e){
+    console.error('Erro loadMyItems:',e);
+    el.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>Erro ao carregar. Tente novamente.</p></div>';
   }
 }
 
