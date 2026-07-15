@@ -409,7 +409,10 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
       </select>
       <div class="form-gap"></div>
       <div class="field-label">Valor declarado (R$)</div>
-      <input class="field" type="number" id="pkg-value" placeholder="Ex: 300">
+      <div style="position:relative">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--ink-soft);pointer-events:none">R$</span>
+        <input class="field" type="text" id="pkg-value" placeholder="0,00" style="padding-left:36px" oninput="formatarPreco(this)" inputmode="numeric">
+      </div>
       <div class="form-gap"></div>
       <div class="field-label">Endereço de coleta</div>
       <div class="cep-wrap">
@@ -430,7 +433,10 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
       </div>
       <div class="form-gap"></div>
       <div class="field-label">Preço que você pagaria (R$)</div>
-      <input class="field" type="number" id="pkg-price" placeholder="Ex: 40">
+      <div style="position:relative">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--ink-soft);pointer-events:none">R$</span>
+        <input class="field" type="text" id="pkg-price" placeholder="0,00" style="padding-left:36px" oninput="formatarPreco(this)" inputmode="numeric">
+      </div>
       <div class="form-gap"></div>
       <div class="terms-row">
         <input type="checkbox" class="terms-check" id="pkg-terms">
@@ -502,7 +508,10 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
       <select class="field" id="req-weight"><option value="até 2kg">até 2kg</option><option value="até 5kg">até 5kg</option><option value="até 10kg">até 10kg</option><option value="até 15kg">até 15kg</option></select>
       <div class="form-gap"></div>
       <div class="field-label">Valor declarado (R$)</div>
-      <input class="field" type="number" id="req-value" placeholder="Ex: 200">
+      <div style="position:relative">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--ink-soft);pointer-events:none">R$</span>
+        <input class="field" type="text" id="req-value" placeholder="0,00" style="padding-left:36px" oninput="formatarPreco(this)" inputmode="numeric">
+      </div>
       <div class="form-gap"></div>
       <div class="field-label">Endereço de coleta</div>
       <div style="display:flex;gap:8px;margin-bottom:6px">
@@ -596,20 +605,25 @@ html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'Inte
     <div class="field-group">
       <div class="field-label">Cidade de origem</div>
       <div class="city-wrap">
-        <input class="field" type="text" id="trip-origin" placeholder="Qualquer cidade do Brasil" autocomplete="off" oninput="cityAC(this,'trip-origin-sug')">
+        <input class="field" type="text" id="trip-origin" placeholder="Qualquer cidade do Brasil" autocomplete="off"
+          oninput="cityAC(this,'trip-origin-sug')"
+          onblur="showTripMapPreview();calcularFreteSugerido()">
         <div class="city-suggestions" id="trip-origin-sug"></div>
       </div>
       <div class="form-gap"></div>
       <div class="field-label">Cidade de destino</div>
       <div class="city-wrap">
-        <input class="field" type="text" id="trip-dest" placeholder="Qualquer cidade do Brasil" autocomplete="off" oninput="cityAC(this,'trip-dest-sug')">
+        <input class="field" type="text" id="trip-dest" placeholder="Qualquer cidade do Brasil" autocomplete="off"
+          oninput="cityAC(this,'trip-dest-sug')"
+          onblur="showTripMapPreview();calcularFreteSugerido()">
         <div class="city-suggestions" id="trip-dest-sug"></div>
       </div>
       <!-- MAPA aparece após preencher os dois campos -->
       <div class="map-preview" id="trip-route-map"></div>
       <div class="form-gap"></div>
       <div class="field-label">Data da viagem</div>
-      <input class="field" type="date" id="trip-date">
+      <input class="field" type="text" id="trip-date" placeholder="DD/MM/AAAA" maxlength="10"
+        oninput="maskData(this)" inputmode="numeric">
       <div class="form-gap"></div>
       <div class="field-label">Período</div>
       <select class="field" id="trip-period"><option value="manhã">Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option><option value="madrugada">Madrugada</option></select>
@@ -1045,38 +1059,95 @@ async function processPayment() {
   btn.disabled = true;
 
   try {
-    const price = parseFloat(selTrip?.price || 0);
-    const description = `Trazu — ${pendingRequestData.origin} → ${pendingRequestData.destination}`;
+    const price = parseFloat((selTrip?.price||'0').toString().replace(',','.')) || 0;
+    if(price<=0){ showToast('Valor do frete inválido'); btn.textContent='Ir para pagamento seguro →'; btn.disabled=false; return; }
 
-    const response = await fetch('/api/create-preference', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount: price,
-        description,
-        payerEmail: cu.email,
-        requestId: pendingRequestId
-      })
-    });
+    const description = `Trazu — ${pendingRequestData?.origin||''} → ${pendingRequestData?.destination||''}`;
 
-    const data = await response.json();
+    // Testa primeiro se a API está acessível
+    let apiDisponivel = true;
+    let data = null;
 
-    if (!response.ok || !data.init_point) {
-      throw new Error(data.error || 'Erro ao criar pagamento');
+    try {
+      const response = await fetch('/api/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: price,
+          description,
+          payerEmail: cu.email,
+          requestId: pendingRequestId
+        })
+      });
+
+      if(response.status === 404){
+        apiDisponivel = false;
+      } else {
+        data = await response.json();
+        if (!response.ok || !data.init_point) {
+          console.error('MP API erro:', data);
+          throw new Error(data.error || `Erro ${response.status}`);
+        }
+      }
+    } catch(fetchErr) {
+      if(fetchErr.message.includes('fetch') || fetchErr.message.includes('network')){
+        apiDisponivel = false;
+      } else {
+        throw fetchErr;
+      }
     }
 
-    // Atualiza o pedido como "aguardando pagamento"
-    await db.collection('requests').doc(pendingRequestId).update({ paymentStatus: 'pending' });
+    // Se API não disponível, mostra instruções de como configurar
+    if(!apiDisponivel){
+      btn.textContent = 'Ir para pagamento seguro →';
+      btn.disabled = false;
+      mostrarModalAPIIndisponivel(price);
+      return;
+    }
 
-    // Redireciona para o checkout do Mercado Pago
+    // Atualiza pedido e redireciona para Mercado Pago
+    try{
+      await db.collection('requests').doc(pendingRequestId).update({ paymentStatus: 'pending' });
+    }catch(e){ console.warn('update request:', e); }
+
     window.location.href = data.init_point;
 
   } catch (err) {
-    console.error(err);
-    showToast('Erro ao processar pagamento. Tente novamente.');
+    console.error('processPayment erro:', err);
+    showToast('Erro: ' + (err.message||'tente novamente'));
     btn.textContent = 'Ir para pagamento seguro →';
     btn.disabled = false;
   }
+}
+
+function mostrarModalAPIIndisponivel(price){
+  // Cria modal explicativo quando a API serverless não está configurada
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;';
+  overlay.innerHTML=`
+    <div style="background:var(--white);border-radius:20px 20px 0 0;padding:24px;width:100%;max-height:80vh;overflow-y:auto;">
+      <p style="font-size:16px;font-weight:700;margin-bottom:12px;">⚙️ Configuração de pagamento</p>
+      <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:16px;">
+        A função de pagamento ainda não está ativa porque o arquivo <strong>api/create-preference.js</strong>
+        precisa estar na pasta correta no GitHub.
+      </p>
+      <p style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:8px;">Como corrigir:</p>
+      <div style="background:var(--ink-tint);border-radius:10px;padding:14px;font-size:12px;color:var(--ink-soft);line-height:1.8;margin-bottom:16px;">
+        1. No GitHub, verifique se a pasta se chama <strong>api</strong> (minúsculas)<br>
+        2. O arquivo deve ser <strong>api/create-preference.js</strong><br>
+        3. Após corrigir, acesse: <strong>app.trazu.com.br/api/create-preference</strong><br>
+        4. Deve aparecer: <em>"Método não permitido"</em> — isso confirma que está ok
+      </div>
+      <p style="font-size:12px;color:var(--ink-soft);margin-bottom:16px;">
+        <strong>Valor do pedido:</strong> R$ ${price.toFixed(2).replace('.',',')}
+      </p>
+      <button onclick="this.closest('[style]').remove()"
+        style="width:100%;padding:14px;background:var(--ink);color:var(--white);border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;">
+        Entendi
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
 }
 
 // Verifica retorno do Mercado Pago ao abrir o app
@@ -1477,6 +1548,14 @@ function previewSelfie(input){
   reader.readAsDataURL(input.files[0]);
 }
 
+// ── MÁSCARA DE DATA DD/MM/AAAA ────────────────────────────
+function maskData(input){
+  let v=input.value.replace(/\D/g,'');
+  if(v.length>2) v=v.slice(0,2)+'/'+v.slice(2);
+  if(v.length>5) v=v.slice(0,5)+'/'+v.slice(5,9);
+  input.value=v;
+}
+
 // ── FORMATAÇÃO DE PREÇO R$ ────────────────────────────────
 function formatarPreco(input){
   let v=input.value.replace(/\D/g,'');
@@ -1607,26 +1686,27 @@ async function submitPkg(){
   const dest    =document.getElementById('pkg-dest').value.trim();
   const item    =document.getElementById('pkg-item').value.trim();
   const weight  =document.getElementById('pkg-weight').value;
-  const value   =document.getElementById('pkg-value').value;
+  const valueRaw=document.getElementById('pkg-value').value.replace(',','.');
   const pickup  =document.getElementById('pkg-pickup').value.trim();
   const delivery=document.getElementById('pkg-delivery').value.trim();
-  const price   =document.getElementById('pkg-price').value;
+  const priceRaw=document.getElementById('pkg-price').value.replace(',','.');
+  const value   =parseFloat(valueRaw)||0;
+  const price   =parseFloat(priceRaw)||0;
   if(!origin||!dest){showToast('Informe a cidade de origem e destino');return;}
   if(!item){showToast('Descreva o item que vai enviar');return;}
   if(!pickup){showToast('Informe o endereço de coleta');return;}
   if(!delivery){showToast('Informe o endereço de entrega');return;}
-  if(!price){showToast('Informe o preço que pagaria');return;}
+  if(!price||price<=0){showToast('Informe o preço que pagaria');return;}
   if(!document.getElementById('pkg-terms').checked){showToast('Confirme a declaração de conteúdo antes de publicar');return;}
   try{
     await db.collection('pkgs').add({
       senderId:cu.uid, senderName:up.name,
       origin, destination:dest, item, weight,
-      value:value||'0', pickup, delivery, price,
+      value, pickup, delivery, price,
       status:'open',
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
     showToast('Encomenda publicada! ✅');
-    // Limpar todos os campos
     ['pkg-origin','pkg-dest','pkg-item','pkg-value','pkg-pickup','pkg-pickup-cep',
      'pkg-delivery','pkg-delivery-cep','pkg-price'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.value='';
@@ -1634,14 +1714,14 @@ async function submitPkg(){
     ['pkg-pickup-status','pkg-delivery-status'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.textContent='';
     });
-    document.getElementById('pkg-dest-map').classList.remove('show');
+    const mapEl=document.getElementById('pkg-dest-map');
+    if(mapEl) mapEl.classList.remove('show');
     document.getElementById('pkg-terms').checked=false;
-    showScreen('screen-my-items');
     myTab='pkgs';
-    switchMyTab('pkgs');
+    showScreen('screen-my-items');
   }catch(e){
     console.error('Erro submitPkg:',e.code, e.message);
-    showToast('Erro ao publicar: '+e.message);
+    showToast('Erro ao publicar: '+(e.message||'tente novamente'));
   }
 }
 
